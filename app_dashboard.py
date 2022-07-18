@@ -188,252 +188,169 @@ def run():
 
     # ---- DASHBOARD SNAPSHOT ----
     
-    # top tabs give options to user based on date types
-    dashTab1, dashTab2, dashTab3, dashTab4, dashTab5 = st.tabs(["Single Day","Between 2 Dates","Full Week","Full Month","All Time"])
-
 
     # ---- SINGLE DAY ANALYSIS ----
 
-    with dashTab1:
+    userSelectCol, _, storeImg1, storeImg2, storeImg3, storeImg4, storeImg5 = st.columns([4,1,1,1,1,1,1]) 
+    # dictionary to hold store related image paths, and their column vars for setting iteratively
+    stores_img_dict = {"Chesterfield":{"col":storeImg1, "on":"imgs\coffee-shop-light-chesterfield.png", "off":"imgs\coffee-shop-light-chesterfield-saturated.png"},
+                        "Uppingham":{"col":storeImg2, "on":"imgs\coffee-shop-light-uppingham.png", "off":"imgs\coffee-shop-light-uppingham-saturated.png"},
+                        "Longridge":{"col":storeImg3, "on":"imgs\coffee-shop-light-longridge.png", "off":"imgs\coffee-shop-light-longridge-saturated.png"},
+                        "London Camden":{"col":storeImg4, "on":"imgs\coffee-shop-light-london-camden.png", "off":"imgs\coffee-shop-light-london-camden-saturated.png"},
+                        "London Soho":{"col":storeImg5, "on":"imgs\coffee-shop-light-london-soho.png", "off":"imgs\coffee-shop-light-london-soho-saturated.png"}
+                        }
 
-        _, storeImg1, storeImg2, storeImg3, storeImg4, storeImg5 = st.columns([5,1,1,1,1,1]) 
-        # dictionary to hold store related image paths, and their column vars for setting iteratively
-        stores_img_dict = {"Chesterfield":{"col":storeImg1, "on":"imgs\coffee-shop-light-chesterfield.png", "off":"imgs\coffee-shop-light-chesterfield-saturated.png"},
-                            "Uppingham":{"col":storeImg2, "on":"imgs\coffee-shop-light-uppingham.png", "off":"imgs\coffee-shop-light-uppingham-saturated.png"},
-                            "Longridge":{"col":storeImg3, "on":"imgs\coffee-shop-light-longridge.png", "off":"imgs\coffee-shop-light-longridge-saturated.png"},
-                            "London Camden":{"col":storeImg4, "on":"imgs\coffee-shop-light-london-camden.png", "off":"imgs\coffee-shop-light-london-camden-saturated.png"},
-                            "London Soho":{"col":storeImg5, "on":"imgs\coffee-shop-light-london-soho.png", "off":"imgs\coffee-shop-light-london-soho-saturated.png"}
-                            }
-
-        # print function for images
-        def print_on_off_stores(selected_stores_list:list, img_dict:dict):
-            """ prints out the 5 store images as either on or off (saturated) based on whether they were selected, see comment for refactor"""
-            # if you actually pass in the dict (and they always have cols + imgs, and same key names) then this could be reformatted to be multipurpose
-            for store_name in base_stores_list:
-                    if store_name in selected_stores_list:
-                        img_dict[store_name]["col"].image(img_dict[store_name]["on"])
-                    else:
-                        img_dict[store_name]["col"].image(img_dict[store_name]["off"])
-
-        # header tabs for the data section
-        dataHeaderCol1, dataHeaderCol2  = st.tabs(["Combined Totals", "Averages"])
-
-        # columns to split display stores element and data elements, select col = side with images and user select inputs
-        # these are split up for the above tabs (combined totals and averages)
-        with dataHeaderCol1:
-            dataCol1, dataCol2, dataCol3, selectCol = st.columns([1,1,1,3])
-        with dataHeaderCol2:
-            data2Col1, data2Col2, data2Col3, select2Col = st.columns([1,1,1,3])
-
-        # session state vars
-        if "curretDateSelection" not in st.session_state:
-            st.session_state["curretDateSelection"] = datetime.date(2022, 6, 7)
-        if "curretStoreSelection" not in st.session_state:
-            st.session_state["curretStoresSelection"] = ["Chesterfield"]
-        if "curretDateSelection2" not in st.session_state:
-            st.session_state["curretDateSelection2"] = datetime.date(2022, 6, 7)
-        if "curretStoreSelection2" not in st.session_state:
-            st.session_state["curretStoresSelection2"] = ["Chesterfield"]
-
-
-        # try set the final vars just here and both the above have 2 seperate names
-        # use a callback function again, last time testing tho
-        def persist_user_selections(the_tab:str, the_select:str):
-            if the_tab == "tots":
-                if the_select == "date":
-                    st.session_state["curretDateSelection"] = select_tot_date
+    # print function for images
+    def print_on_off_stores(selected_stores_list:list, img_dict:dict):
+        """ prints out the 5 store images as either on or off (saturated) based on whether they were selected, see comment for refactor"""
+        # if you actually pass in the dict (and they always have cols + imgs, and same key names) then this could be reformatted to be multipurpose
+        for store_name in base_stores_list:
+                if store_name in selected_stores_list:
+                    img_dict[store_name]["col"].image(img_dict[store_name]["on"])
                 else:
-                    st.session_state["curretStoresSelection"] = select_tot_stores
-            else:
-                if the_select == "date":
-                    st.session_state["curretDateSelection"] = select_avg_date
-                else:
-                    st.session_state["curretStoresSelection"] = select_avg_stores                
- 
+                    img_dict[store_name]["col"].image(img_dict[store_name]["off"])
 
-        # session state vars are used here to ensure user select data is persisted between tabs
-        # for combined totals tab
-        with selectCol:
-            select_tot_date = st.date_input(label="What Date Would You Like Info On?", value=st.session_state["curretDateSelection"], max_value=last_valid_date, min_value=first_valid_date, key="date_combined", on_change=persist_user_selections, args=["tots", "date"]) 
-            select_tot_stores = st.multiselect(label='Which Stores Would You Like Info On?', default=st.session_state["curretStoresSelection"], options=base_stores_list, key="stores_combined", args=["tots", "stores"])                 
- 
-            if len(select_tot_stores) > 1:
-                selectCol.success("By selecting 2 or more stores you can also view the average")
-            if len(select_tot_stores) == 0:
-                selectCol.warning("No Store Selected - Using Default Store 'Chesterfield'")
+    # header tabs for the data section
+    dataHeaderCol1, dataHeaderCol2  = st.tabs(["Combined Totals", "Averages"])
 
-        # for averages tab
-        with select2Col:
-            select_avg_date = st.date_input(label="What Date Would You Like Info On?", value=st.session_state["curretDateSelection"], max_value=last_valid_date, min_value=first_valid_date, key="date_averages", args=["avgs","date"])
-            select_avg_stores = st.multiselect(label='Which Stores Would You Like Info On?', default=st.session_state["curretStoresSelection"], options=base_stores_list, key="stores_averages", args=["avgs","stores"])
+    # columns to split display stores element and data elements, select col = side with images and user select inputs
+    # these are split up for the above tabs (combined totals and averages)
+    with dataHeaderCol1:
+        dataCol1, dataCol2, dataCol3, selectCol = st.columns([1,1,1,3])
+    with dataHeaderCol2:
+        data2Col1, data2Col2, data2Col3, select2Col = st.columns([1,1,1,3])
 
-            if len(select_avg_stores) > 1:
-                select2Col.success("By selecting 2 or more stores you can also view the average")
-            if len(select_avg_stores) == 0:
-                select2Col.warning("No Store Selected - Using Default Store 'Chesterfield'") 
-            
-            #FIXME - delta shows weekly avg text here (needs consideration to if being shown and what conditions cause that) 
+    # session state vars set the intial defaults for user selects
+    if "curretDateSelection" not in st.session_state:
+        st.session_state["curretDateSelection"] = datetime.date(2022, 6, 7)
+    if "curretStoreSelection" not in st.session_state:
+        st.session_state["curretStoresSelection"] = ["Chesterfield"]  
 
-
+    # session state vars are used here to ensure user select data is persisted between tabs
+    # for combined totals tab
+    with userSelectCol:
+        dash1_selected_date = st.date_input(label="What Date Would You Like Info On?", value=st.session_state["curretDateSelection"], max_value=last_valid_date, min_value=first_valid_date, key="date_combined") 
+        select_tot_stores = st.multiselect(label='Which Stores Would You Like Info On?', default=st.session_state["curretStoresSelection"], options=base_stores_list, key="stores_combined")                 
         dash1_selected_date = st.session_state["curretDateSelection"]
         dash1_selected_stores = st.session_state["curretStoresSelection"]
 
+        if len(select_tot_stores) > 1:
+            selectCol.success("By selecting 2 or more stores you can also view the average")
+        if len(select_tot_stores) == 0:
+            selectCol.warning("No Store Selected - Using Default Store 'Chesterfield'")
+        # TODO - info on what the deltas are here
+
+    
+    print_on_off_stores(dash1_selected_stores, stores_img_dict)
+    # var for storing the resulting data from the users selected date
+    selected_stores_date_vals = ()
+
+
+    # if None (because all options were removed from the select box by the user) or Chesterfield
+    if len(st.session_state["curretStoresSelection"]) == 0 or (st.session_state["curretStoresSelection"][0] == "Chesterfield" and len(st.session_state["curretStoresSelection"]) == 1):
+        # use the base queries, as Chesterfield is the default store
+        # convert the date to a string so we can find it in the base query data
+
+        userdate_as_string = str(dash1_selected_date)
+        # loop the base dict 'all days' data to see if the users selected date is in there
+        for i, daydata in enumerate(base_data_dict["chesterfield_bi_alldays"]):
+            for date in daydata:
+                if userdate_as_string == date:
+                    selected_stores_date_vals = daydata
+
+        # note if no date data is found it will still be sent through and a missingno error will be show to the user when trying to print the metrics
+
+    else:
+        selected_stores_date_query_storespart = create_stores_query(dash1_selected_stores)
+        selected_stores_date_data = get_selected_stores_date_data(selected_stores_date_query_storespart, dash1_selected_date)
         
-        print_on_off_stores(dash1_selected_stores, stores_img_dict)
-        # var for storing the resulting data from the users selected date
-        selected_stores_date_vals = ()
+        st.write(selected_stores_date_data)
+        print(selected_stores_date_data)
 
- 
-        # if None (because all options were removed from the select box by the user) or Chesterfield
-        if len(st.session_state["curretStoresSelection"]) == 0 or (st.session_state["curretStoresSelection"][0] == "Chesterfield" and len(st.session_state["curretStoresSelection"]) == 1):
-            # use the base queries, as Chesterfield is the default store
-            # convert the date to a string so we can find it in the base query data
-
-            userdate_as_string = str(dash1_selected_date)
-            # loop the base dict 'all days' data to see if the users selected date is in there
-            for i, daydata in enumerate(base_data_dict["chesterfield_bi_alldays"]):
-                for date in daydata:
-                    if userdate_as_string == date:
-                        selected_stores_date_vals = daydata
-
-            # note if no date data is found it will still be sent through and a missingno error will be show to the user when trying to print the metrics
-
+        if isinstance(selected_stores_date_data, tuple):
+        # if only one store was returned unpack the values for metric display
+            selected_stores_date_vals = selected_stores_date_data[0]
+            # BUG - TRY 2 STORES 06 YOU'LL SEE, IS DUE TO AVG BUT IF NOT DATA SO DOES NEED TO BE FIXED!
+            # selected_stores_date_avgs = (0,0,0,0)
+        # else is more than one store
         else:
-            selected_stores_date_query_storespart = create_stores_query(dash1_selected_stores)
-            selected_stores_date_data = get_selected_stores_date_data(selected_stores_date_query_storespart, dash1_selected_date)
-            
-            st.write(selected_stores_date_data)
-            print(selected_stores_date_data)
+            rt1, rt2, rt3, rt4 = 0, 0, 0, 0 # rt = running totals
+            countforavg = len(selected_stores_date_data) 
+            for store in selected_stores_date_data:
+                rt1 += float(store[0])
+                rt2 += float(store[1])
+                rt3 += store[2]
+                rt4 += store[3]
+            selected_stores_date_vals = (rt1, rt2, rt3, rt4)
+            selected_stores_date_avgs = (rt1/countforavg, rt2/countforavg, rt3/countforavg, rt4/countforavg)
 
-            if isinstance(selected_stores_date_data, tuple):
-            # if only one store was returned unpack the values for metric display
-                selected_stores_date_vals = selected_stores_date_data[0]
-                # BUG - TRY 2 STORES 06 YOU'LL SEE, IS DUE TO AVG BUT IF NOT DATA SO DOES NEED TO BE FIXED!
-                # selected_stores_date_avgs = (0,0,0,0)
-            # else is more than one store
-            else:
-                rt1, rt2, rt3, rt4 = 0, 0, 0, 0 # rt = running totals
-                countforavg = len(selected_stores_date_data) 
-                for store in selected_stores_date_data:
-                    rt1 += float(store[0])
-                    rt2 += float(store[1])
-                    rt3 += store[2]
-                    rt4 += store[3]
-                selected_stores_date_vals = (rt1, rt2, rt3, rt4)
-                selected_stores_date_avgs = (rt1/countforavg, rt2/countforavg, rt3/countforavg, rt4/countforavg)
+    # get weekly average for metric deltas, unpack on arrival
+    revenue_week_avg, avg_cust_spend_week_avg, tot_customers_week_avg, coffees_sold_week_avg  = get_store_weekly_avg(dash1_selected_stores, dash1_selected_date)
 
-        # get weekly average for metric deltas, unpack on arrival
-        revenue_week_avg, avg_cust_spend_week_avg, tot_customers_week_avg, coffees_sold_week_avg  = get_store_weekly_avg(dash1_selected_stores, dash1_selected_date)
+    try:
+        # display basic metrics for user selected date and stores 
+        
+        def display_basic_metric(dataset:tuple, avg_or_vals:str):
+            """ display metrics for given store and date for either 'vals' (sum totals) or 'avgs' based on given parameter """
+            # function needs to stay nested else it loses scope of the column variables 
+            # general totals
+            if avg_or_vals == "vals":
+                # note deltas are the weekly avgs
 
-        try:
-            # display basic metrics for user selected date and stores 
-            
-            def display_basic_metric(dataset:tuple, avg_or_vals:str):
-                """ display metrics for given store and date for either 'vals' (sum totals) or 'avgs' based on given parameter """
-                # function needs to stay nested else it loses scope of the column variables 
-                # general totals
-                if avg_or_vals == "vals":
-                    # note deltas are the weekly avgs
+                # FIXME - WOULD PREFER DELTA HERE TO BE THE "BEST" VALS FOR WHICH EVER STORE WAS BEST IN EACH (+ its name???)
 
-                    # FIXME - WOULD PREFER DELTA HERE TO BE THE "BEST" VALS FOR WHICH EVER STORE WAS BEST IN EACH (+ its name???)
-
-                    dataCol1.metric(label="Total Revenue", value=f"${dataset[0]:.2f}", delta=f"${revenue_week_avg:.2f}", delta_color="normal")
-                    dataCol2.metric(label="Total Paying Customers", value=dataset[2], delta=int(tot_customers_week_avg), delta_color="normal")
-                    dataCol3.metric(label="Coffees Sold", value=dataset[3], delta=int(coffees_sold_week_avg), delta_color="normal")
-                    # should always be an average so div it by the amount of stores (as is sum/total before)
-                    if len(dash1_selected_stores) > 0:
-                        actual_avg_spend = (dataset[1] / len(dash1_selected_stores))
-                    else:
-                        actual_avg_spend = dataset[1]
-                    dataCol1.metric(label="Avg Spend Per Customer", value=f"${actual_avg_spend:.2f}", delta=f"${avg_cust_spend_week_avg:.2f}", delta_color="normal")
+                dataCol1.metric(label="Total Revenue", value=f"${dataset[0]:.2f}", delta=f"${revenue_week_avg:.2f}", delta_color="normal")
+                dataCol2.metric(label="Total Paying Customers", value=dataset[2], delta=int(tot_customers_week_avg), delta_color="normal")
+                dataCol3.metric(label="Coffees Sold", value=dataset[3], delta=int(coffees_sold_week_avg), delta_color="normal")
+                # should always be an average so div it by the amount of stores (as is sum/total before)
+                if len(dash1_selected_stores) > 0:
+                    actual_avg_spend = (dataset[1] / len(dash1_selected_stores))
                 else:
-                    # else is averages
-                    data2Col1.metric(label="Total Revenue", value=f"${dataset[0]:.2f}", delta=f"{dataset[0]-revenue_week_avg:.2f}", delta_color="normal")
-                    data2Col2.metric(label="Total Paying Customers", value=f"{dataset[2]:.0f}", delta=int(dataset[2])-int(tot_customers_week_avg), delta_color="normal")
-                    data2Col3.metric(label="Coffees Sold", value=f"{dataset[3]:.0f}", delta=int(dataset[3])-int(coffees_sold_week_avg), delta_color="normal")
-                    data2Col1.metric(label="Avg Spend Per Customer", value=f"${dataset[1]:.2f}", delta=f"{dataset[1]-avg_cust_spend_week_avg:.2f}", delta_color="normal")                    
-                    # print spaces & empty metrics for equal vertical spacing
-                    data2Col2.metric("-","-","-","off")
-                    data2Col3.metric("-","-","-","off")
-                    data2Col1.write("---")
-                    data2Col2.write("---") 
-                    data2Col3.write("---")
-                    data2Col1.markdown("##### Weeks Average")
-                    data2Col2.write(". ") 
-                    data2Col3.write(". ")
-                    # then the weekly avg data (so deltas make more sense/have clarity)
-
-                    # FIXME - ADD THE DELTAS HERE AND SHOW AS A % ! (again make sure all this is clear like tooltip or expander or sumnt!)
-
-                    data2Col1.metric(label="Total Revenue", value=f"${revenue_week_avg:.2f}")
-                    data2Col2.metric(label="Total Paying Customers", value=int(tot_customers_week_avg))
-                    data2Col3.metric(label="Coffees Sold", value=int(coffees_sold_week_avg))
-                    data2Col1.metric(label="Avg Spend Per Customer", value=f"${avg_cust_spend_week_avg:.2f}")                    
-            # if more than one store display averages too, else don't
-            if len(dash1_selected_stores) > 1:
-                with dataHeaderCol1:
-                    display_basic_metric(selected_stores_date_vals, "vals")
-                with dataHeaderCol2:
-                    display_basic_metric(selected_stores_date_avgs, "avgs")
+                    actual_avg_spend = dataset[1]
+                dataCol1.metric(label="Avg Spend Per Customer", value=f"${actual_avg_spend:.2f}", delta=f"${avg_cust_spend_week_avg:.2f}", delta_color="normal")
             else:
-                with dataHeaderCol1:
-                    display_basic_metric(selected_stores_date_vals, "vals") 
-                with dataHeaderCol2:
-                    data2Col1.warning("Not Enough Stores")   
-                    data2Col2.warning("For Average Data")
+                # else is averages
+                data2Col1.metric(label="Total Revenue", value=f"${dataset[0]:.2f}", delta=f"{dataset[0]-revenue_week_avg:.2f}", delta_color="normal")
+                data2Col2.metric(label="Total Paying Customers", value=f"{dataset[2]:.0f}", delta=int(dataset[2])-int(tot_customers_week_avg), delta_color="normal")
+                data2Col3.metric(label="Coffees Sold", value=f"{dataset[3]:.0f}", delta=int(dataset[3])-int(coffees_sold_week_avg), delta_color="normal")
+                data2Col1.metric(label="Avg Spend Per Customer", value=f"${dataset[1]:.2f}", delta=f"{dataset[1]-avg_cust_spend_week_avg:.2f}", delta_color="normal")                    
+                # print spaces & empty metrics for equal vertical spacing
+                data2Col2.metric("-","-","-","off")
+                data2Col3.metric("-","-","-","off")
+                data2Col1.write("---")
+                data2Col2.write("---") 
+                data2Col3.write("---")
+                data2Col1.markdown("##### Weeks Average")
+                data2Col2.write(". ") 
+                data2Col3.write(". ")
+                # then the weekly avg data (so deltas make more sense/have clarity)
 
-        # catch errors for no data (i.e. missing for a certain date)
-        except IndexError:
-            dataCol1.error("Missingno Error [No Data]")
-            print("Index Error - Snapshot Metric")
-        except TypeError:
-            dataCol1.error("Actual Error [Bruhh]")
-            print("Actual Error - Snapshot Metric")
+                # FIXME - ADD THE DELTAS HERE AND SHOW AS A % ! (again make sure all this is clear like tooltip or expander or sumnt!)
 
+                data2Col1.metric(label="Total Revenue", value=f"${revenue_week_avg:.2f}")
+                data2Col2.metric(label="Total Paying Customers", value=int(tot_customers_week_avg))
+                data2Col3.metric(label="Coffees Sold", value=int(coffees_sold_week_avg))
+                data2Col1.metric(label="Avg Spend Per Customer", value=f"${avg_cust_spend_week_avg:.2f}")                    
+        # if more than one store display averages too, else don't
+        if len(dash1_selected_stores) > 1:
+            with dataHeaderCol1:
+                display_basic_metric(selected_stores_date_vals, "vals")
+            with dataHeaderCol2:
+                display_basic_metric(selected_stores_date_avgs, "avgs")
+        else:
+            with dataHeaderCol1:
+                display_basic_metric(selected_stores_date_vals, "vals") 
+            with dataHeaderCol2:
+                data2Col1.warning("Not Enough Stores")   
+                data2Col2.warning("For Average Data")
 
-    # ---- BETWEEN 2 DATES ANALYSIS ----
-
-    with dashTab2:
-
-        _, storeBImg1, storeBImg2, storeBImg3, storeBImg4, storeBImg5 = st.columns([5,1,1,1,1,1]) 
-        # dictionary to hold store related image paths, and their column vars for setting iteratively
-        stores_img_dict2 = {"Chesterfield":{"col":storeBImg1, "on":"imgs\coffee-shop-light-chesterfield.png", "off":"imgs\coffee-shop-light-chesterfield-saturated.png"},
-                            "Uppingham":{"col":storeBImg2, "on":"imgs\coffee-shop-light-uppingham.png", "off":"imgs\coffee-shop-light-uppingham-saturated.png"},
-                            "Longridge":{"col":storeBImg3, "on":"imgs\coffee-shop-light-longridge.png", "off":"imgs\coffee-shop-light-longridge-saturated.png"},
-                            "London Camden":{"col":storeBImg4, "on":"imgs\coffee-shop-light-london-camden.png", "off":"imgs\coffee-shop-light-london-camden-saturated.png"},
-                            "London Soho":{"col":storeBImg5, "on":"imgs\coffee-shop-light-london-soho.png", "off":"imgs\coffee-shop-light-london-soho-saturated.png"}
-                            }
-
-        # header tabs for the data section
-        dataBHeaderCol1, dataBHeaderCol2  = st.tabs(["Combined Totals", "Averages"])
-
-         # columns to split display stores element and data elements, select col = side with images and user select inputs
-        # these are split up for the above tabs (combined totals and averages)
-        with dataBHeaderCol1:
-            dataBCol1, dataBCol2, dataBCol3, selectBCol = st.columns([1,1,1,3])
-        with dataBHeaderCol2:
-            dataB2Col1, dataB2Col2, dataB2Col3, selectB2Col = st.columns([1,1,1,3])
-
-        # for combined totals tab
-        with selectBCol:
-            dash2_selected_date = st.date_input(label="What Date Would You Like Info On?", value=st.session_state["curretDateSelection2"], max_value=last_valid_date, min_value=first_valid_date, key="date_combined2") 
-            dash2_selected_stores = st.multiselect(label='Which Stores Would You Like Info On?', default=st.session_state["curretStoresSelection2"], options=base_stores_list, key="stores_combined2")                   
-            st.session_state["curretDateSelection2"] = dash2_selected_date
-            st.session_state["curretStoresSelection2"] = dash2_selected_stores
-            if len(dash2_selected_stores) > 1:
-                selectBCol.success("By selecting 2 or more stores you can also view the average")
-            if len(dash2_selected_stores) == 0:
-                selectBCol.warning("No Store Selected - Using Default Store 'Chesterfield'")
-
-        print_on_off_stores(dash2_selected_stores, stores_img_dict2)
-
-        # NOTE 
-        # FOR THE REST OF THESE THINGS LIKE DATA COMPLETENESS, WEEK DISPLAYS N TINGS CAN BE ADDED (sure more too so have a think)
-        # TOTAL AMOUNT OF DAYS, DIFF BETWEEN DAYS, ETC
-        # OOO DO THIS, AVERAGES (as total/weekly idk) THEN IF GREATER THAN 7 DAYS WEEKLY AVG TAB, IF 14 FORTNIGHTLY AVG TAB (and similar ideas!)
-        # IG CAN STILL KEEP THE SAME FOR NORMAL AVGS (SO ITS JUST FROM THE SAME WEEK (does still depend on length tbf ig))
-        # BUT THEN FOR 7 DAYS TAB IT CAN SHOW AVGS FROM WEEK PRIOR AND WEEK AFTER OR SUMNT (see ideas like this are awesome)!
-
+    # catch errors for no data (i.e. missing for a certain date)
+    except IndexError:
+        dataCol1.error("Missingno Error [No Data]")
+        print("Index Error - Snapshot Metric")
+    except TypeError:
+        dataCol1.error("Actual Error [Bruhh]")
+        print("Actual Error - Snapshot Metric")
 
 
 

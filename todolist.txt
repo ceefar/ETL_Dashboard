@@ -10,6 +10,8 @@ PAGES
 store vs store
 store insights (more about hours of the day than anything else)
 product insights (more about products duh, hours of the day too tho obvs)
+days of the week / week breakdown
+compare between dates
 
 
 ACTUAL TODO
@@ -18,6 +20,6 @@ insights stuff <<<<<<<<<<<
 - much more interesting and explorative so move on to this whenever
 
 between two dates, week, month, all time
-- few bugs so come back to this
+- just make all this shit its own page now is just easier
 
 first metric deltas
