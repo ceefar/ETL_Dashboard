@@ -14,10 +14,10 @@ product insights (more about products duh, hours of the day too tho obvs)
 
 ACTUAL TODO
 *************
-between two dates, week, month, all time - hella quick/simple or just stop whenever you want tbf
-- think about anything else that could be added here
-
-insights stuff
+insights stuff <<<<<<<<<<<
 - much more interesting and explorative so move on to this whenever
+
+between two dates, week, month, all time
+- few bugs so come back to this
 
 first metric deltas
