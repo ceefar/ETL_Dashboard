@@ -114,20 +114,6 @@ def create_stores_query(user_stores_list:list, need_where:bool = True) -> str:
         return(final_query)
 
 
-# session states to persit the users selection between tabs
-# literally just seen this says curret lol
-# cache it, just causes local issues when refreshed due to cache persistence 
-def set_base_session_states():
-    """ write me """
-    if "curretDateSelection" not in st.session_state:
-        st.session_state["curretDateSelection"] = datetime.date(2022, 6, 7)
-    if "curretStoreSelection" not in st.session_state:
-        st.session_state["curretStoresSelection"] = ["Chesterfield"]
-    if "curretDateSelection2" not in st.session_state:
-        st.session_state["curretDateSelection2"] = datetime.date(2022, 6, 7)
-    if "curretStoreSelection2" not in st.session_state:
-        st.session_state["curretStoresSelection2"] = ["Chesterfield"]
-
 
 @st.cache
 def get_store_weekly_avg(storename:str|list, userdate:datetime) -> tuple[float]:
@@ -174,9 +160,6 @@ def run():
     # convert the dates to date objects 
     first_valid_date = datetime.datetime.strptime(first_valid_date, '%Y-%m-%d').date()
     last_valid_date = datetime.datetime.strptime(last_valid_date, '%Y-%m-%d').date()
-
-    # base session stats - didnt actually change anything
-    set_base_session_states()
 
 
     # ---- SIDEBAR ----
@@ -242,43 +225,65 @@ def run():
         with dataHeaderCol2:
             data2Col1, data2Col2, data2Col3, select2Col = st.columns([1,1,1,3])
 
-        #BUG - THE SELECTION ERROR IS CAUSED BY A DATE WITH NO DATA, WILL BE AN EASY ENOUGH FIX THO SHOULD 
-        #st.write(st.session_state["curretDateSelection"])
+        # session state vars
+        if "curretDateSelection" not in st.session_state:
+            st.session_state["curretDateSelection"] = datetime.date(2022, 6, 7)
+        if "curretStoreSelection" not in st.session_state:
+            st.session_state["curretStoresSelection"] = ["Chesterfield"]
+        if "curretDateSelection2" not in st.session_state:
+            st.session_state["curretDateSelection2"] = datetime.date(2022, 6, 7)
+        if "curretStoreSelection2" not in st.session_state:
+            st.session_state["curretStoresSelection2"] = ["Chesterfield"]
+
+
+        # try set the final vars just here and both the above have 2 seperate names
+        # use a callback function again, last time testing tho
+        def persist_user_selections(the_tab:str, the_select:str):
+            if the_tab == "tots":
+                if the_select == "date":
+                    st.session_state["curretDateSelection"] = select_tot_date
+                else:
+                    st.session_state["curretStoresSelection"] = select_tot_stores
+            else:
+                if the_select == "date":
+                    st.session_state["curretDateSelection"] = select_avg_date
+                else:
+                    st.session_state["curretStoresSelection"] = select_avg_stores                
+ 
 
         # session state vars are used here to ensure user select data is persisted between tabs
         # for combined totals tab
         with selectCol:
-            dash1_selected_date = st.date_input(label="What Date Would You Like Info On?", value=st.session_state["curretDateSelection"], max_value=last_valid_date, min_value=first_valid_date, key="date_combined") 
-            dash1_selected_stores = st.multiselect(label='Which Stores Would You Like Info On?', default=st.session_state["curretStoresSelection"], options=base_stores_list, key="stores_combined")                 
-            st.session_state["curretDateSelection"] = dash1_selected_date
-            st.session_state["curretStoresSelection"] = dash1_selected_stores
-
-            if len(dash1_selected_stores) > 1:
+            select_tot_date = st.date_input(label="What Date Would You Like Info On?", value=st.session_state["curretDateSelection"], max_value=last_valid_date, min_value=first_valid_date, key="date_combined", on_change=persist_user_selections, args=["tots", "date"]) 
+            select_tot_stores = st.multiselect(label='Which Stores Would You Like Info On?', default=st.session_state["curretStoresSelection"], options=base_stores_list, key="stores_combined", args=["tots", "stores"])                 
+ 
+            if len(select_tot_stores) > 1:
                 selectCol.success("By selecting 2 or more stores you can also view the average")
-            if len(dash1_selected_stores) == 0:
+            if len(select_tot_stores) == 0:
                 selectCol.warning("No Store Selected - Using Default Store 'Chesterfield'")
 
         # for averages tab
         with select2Col:
-            dash1_selected_date = st.date_input(label="What Date Would You Like Info On?", value=st.session_state["curretDateSelection"], max_value=last_valid_date, min_value=first_valid_date, key="date_averages")
-            dash1_selected_stores = st.multiselect(label='Which Stores Would You Like Info On?', default=st.session_state["curretStoresSelection"], options=base_stores_list, key="stores_averages")
-            st.session_state["curretDateSelection"] = dash1_selected_date
-            st.session_state["curretStoresSelection"] = dash1_selected_stores
+            select_avg_date = st.date_input(label="What Date Would You Like Info On?", value=st.session_state["curretDateSelection"], max_value=last_valid_date, min_value=first_valid_date, key="date_averages", args=["avgs","date"])
+            select_avg_stores = st.multiselect(label='Which Stores Would You Like Info On?', default=st.session_state["curretStoresSelection"], options=base_stores_list, key="stores_averages", args=["avgs","stores"])
 
-            if len(dash1_selected_stores) > 1:
+            if len(select_avg_stores) > 1:
                 select2Col.success("By selecting 2 or more stores you can also view the average")
-            if len(dash1_selected_stores) == 0:
+            if len(select_avg_stores) == 0:
                 select2Col.warning("No Store Selected - Using Default Store 'Chesterfield'") 
-               
+            
             #FIXME - delta shows weekly avg text here (needs consideration to if being shown and what conditions cause that) 
 
+
+        dash1_selected_date = st.session_state["curretDateSelection"]
+        dash1_selected_stores = st.session_state["curretStoresSelection"]
+
+        
         print_on_off_stores(dash1_selected_stores, stores_img_dict)
         # var for storing the resulting data from the users selected date
         selected_stores_date_vals = ()
 
-        st.write(st.session_state["curretStoresSelection"])
-        print(st.session_state["curretStoresSelection"])
-
+ 
         # if None (because all options were removed from the select box by the user) or Chesterfield
         if len(st.session_state["curretStoresSelection"]) == 0 or (st.session_state["curretStoresSelection"][0] == "Chesterfield" and len(st.session_state["curretStoresSelection"]) == 1):
             # use the base queries, as Chesterfield is the default store
