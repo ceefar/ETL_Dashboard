@@ -139,8 +139,6 @@ def get_store_weekly_avg(storename:str|list, userdate:datetime) -> tuple[float]:
 
 
 # ---- MAIN WEB APP ----
-# think of this dash like a snapshot page more generalised info, not granular
-# other pages will have store/product specifics (+insights), more indepth comparisons, etc
 
 def run():
 

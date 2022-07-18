@@ -12,14 +12,16 @@ store insights (more about hours of the day than anything else)
 product insights (more about products duh, hours of the day too tho obvs)
 days of the week / week breakdown
 compare between dates
+dashboard home
 
 
 ACTUAL TODO
 *************
-insights stuff <<<<<<<<<<<
-- much more interesting and explorative so move on to this whenever
+insights stuff 
+    - aite we flying now boom, start with tabs for date select and have different types!
 
-between two dates, week, month, all time
-- just make all this shit its own page now is just easier
 
-first metric deltas
+dashboard
+    - hate to say it but probably best to rewrite dashboard page now as is just a mess & nothing is working lol
+    - plan it, keep it simple, and it will be easy tbf
+    - and dont forget to add in portfolio mode stuff 
