@@ -23,12 +23,14 @@ connection = pymysql.connect(
 def add_to_db(command):
     """ gets stuff from a db """
     cursor = connection.cursor()
+    connection.ping()
     cursor.execute(f"{command}") 
     connection.commit()
 
 def get_from_db(command):
     """ gets stuff from a db, returns the result """
     cursor = connection.cursor()
+    connection.ping()
     cursor.execute(f"{command}") 
     myresult = cursor.fetchall()
     connection.commit()

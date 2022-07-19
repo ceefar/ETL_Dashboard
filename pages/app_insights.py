@@ -8,6 +8,8 @@ from streamlit.errors import StreamlitAPIException
 import datetime # from datetime import datetime
 # for db integration
 import db_integration as db
+# for dashboard functions (which should be in another file or db_integrations tbf)
+import app_dashboard as dsh
 # for images and img manipulation
 import PIL
 
@@ -55,11 +57,9 @@ def run():
     first_valid_date = datetime.datetime.strptime(first_valid_date, '%Y-%m-%d').date()
     last_valid_date = datetime.datetime.strptime(last_valid_date, '%Y-%m-%d').date()
 
-    # initialise empty session state vars if there are none
+    # initialise session state var if there is none, default to 1 (initial date select)
     if "last_active_date_tab" not in st.session_state:
-        st.session_state["last_active_date_tab"] = ""
-    if "last_active_store_tab" not in st.session_state:
-        st.session_state["last_active_store_tab"] = ""        
+        st.session_state["last_active_date_tab"] = 1  
     # empty var for selected stores last active tab functionality
     selected_date = ""
 
@@ -67,7 +67,7 @@ def run():
 
     # portfolio/developer mode toggle
     with st.sidebar:
-        dev_mode = st.checkbox(label="Portfolio Mode ", key="devmode-dash")
+        dev_mode = st.checkbox(label="Portfolio Mode ", key="devmode-insights")
         if dev_mode:
             WIDE_MODE_INFO = """
             Portfolio Mode Active\n
@@ -92,56 +92,76 @@ def run():
     def last_active_tab(the_tab:str = "off", want_return:bool = False):
         """ could just do with the actual variables instead of the tab?!?... blah, returns blah """
 
-        # vars to hold the last active tab
+        # use a session state var to persist the last active tab
         last_active_date_tab = st.session_state["last_active_date_tab"]
-
-        print("the_tab", the_tab)
-        print("want_return", want_return)
-        print("last_active_date_tab : ", last_active_date_tab)
 
         # switch to either return the last active tab or store it
         if want_return:
                 return(last_active_date_tab)
         else:
-            st.session_state["last_active_date_tab"] = the_tab[1]
+            st.session_state["last_active_date_tab"] = the_tab
 
-
-        # TODO 
-        # FIXME 
-        # THEN ITS LIKE BOOM - ANOTHER FUNCTION FOR USING THE LAST ACTIVE TAB FOR THE PRECEEDING QUERIES!
 
     # TODO 
     # want image or whatever of the date on the right too and maybe since this is a change between tabs thing
     # a button so you dont *have* to change to make the selection (make sure this is made clear to the user)
     # the button will just run last active tab with the relevant parameters!
+
     userSelectCol, _, storeImg1, storeImg2, storeImg3, storeImg4, storeImg5 = st.columns([4,1,1,1,1,1,1]) 
     with userSelectCol:
-        dateTab1, dateTab2, dateTab3, dateTab4, dateTab5 = st.tabs(["Single Day", "Between 2 Dates", "Full Week", "Full Month", "All Time"])
+        # ---- STORE SELECT ----
+        selected_stores_1 = st.multiselect("Choose The Store", options=base_stores_list, default=["Chesterfield"])
+        
+        # ---- DATE SELECT ----
+        dateTab1, dateTab2, dateTab3, dateTab4, dateTab5, dateTabs6 = st.tabs(["Single Day", "Between 2 Dates", "Single Week", "Mulitple Weeks", "Full Month", "All Time"]) # multiple weeks is a maybe rn btw
         with dateTab1:
-            selected_date_1 = st.date_input("What Date Would You Like Info On?", datetime.date(2022, 7, 5), max_value=last_valid_date, min_value=first_valid_date, on_change=last_active_tab, args=[("date", 1)], key="TODO")  
+            selected_date_1 = st.date_input("What Date Would You Like Info On?", datetime.date(2022, 7, 5), max_value=last_valid_date, min_value=first_valid_date, on_change=last_active_tab, args=[1], key="TODO")  
         with dateTab2:
-            selected_date_2 = st.date_input("What Date Would You Like Info On?", datetime.date(2022, 7, 5), max_value=last_valid_date, min_value=first_valid_date, on_change=last_active_tab, args=[("date", 2)], key="TODO2")  
-    st.write("##")
+            selected_date_2_start = st.date_input("What Start Date?", datetime.date(2022, 7, 1), max_value=last_valid_date, min_value=first_valid_date, on_change=last_active_tab, args=[2], key="TODO2")  
+            selected_date_2_end = st.date_input("What End Date?", datetime.date(2022, 7, 8), max_value=last_valid_date, min_value=first_valid_date, on_change=last_active_tab, args=[2], key="TODO3")
+            # TODO - days between dates here 
+        # ---- SINGLE WEEK ----
+        with dateTab3:
+            # TODO 
+            # put query in db_interaction and rest in own function
+            stores_query = dsh.create_stores_query(selected_stores_1)
+            stores_avail_weeks = sorted(db.get_from_db(f"SELECT DISTINCT WEEKOFYEAR(current_day) FROM BizInsights {stores_query}"))
+            first_day_of_week_list = [] # for zipping with stores_available_weeks (must ensure order is correct)
+            for weeknum in stores_avail_weeks:
+                first_day_of_week = db.get_from_db(f"SELECT '2022-01-01'+INTERVAL ({weeknum[0]}-WEEK('2022-01-01', 1))*7 - WEEKDAY('2022-01-01') DAY")
+                first_day_of_week_list.append(first_day_of_week[0][0])
+            # TODO - REFORMAT THE DATE AS ITS YUCKY LIKE THIS 
+            stores_available_weeks_formatted = []
+            stores_available_weeks = []
+            # reformat the nested tuples into a clean list, dont print var needed else prints result due to being a list comprehension
+            dont_print_me = [stores_available_weeks_formatted.append(f"Week {weeknumb[0]} : {firstday}") for weeknumb, firstday in zip(stores_avail_weeks, first_day_of_week_list)]
+            dont_print_me_2 = [stores_available_weeks.append(weeknumb[0]) for weeknumb in stores_avail_weeks]
+            # print the resulting selectbox for user input
+            # TODO - add the actual first date instead of just an int and get the img ting sorted too
+            selected_date_3 = st.selectbox("Which Week?", options=stores_available_weeks_formatted, key="TODO4", help="Date = Week commencing. Weeks start on Xday", on_change=last_active_tab, args=[3])
+        with dateTab4:
+            # ensure it isn't going to error due to the default
+            if len(stores_available_weeks) > 1:
+                multiweek_default = [stores_available_weeks[0],stores_available_weeks[1]]
+            else:
+                multiweek_default = [stores_available_weeks[0]]
+            selected_date_4 = st.multiselect("Which Weeks?", options=stores_available_weeks, default=multiweek_default, key="TODO5", help="See 'Single Week' for week commencing date", on_change=last_active_tab, args=[4])
+            # TODO - obvs have this on the right hand side with the img ting and ig like completeness too (total days && available days)
+            st.write(f"Total Days = {len(selected_date_4) * 7}")
+        
+        
+        # ---- RUN BUTTON ----
+        # make clear to user that changing will activate or pushing button after changing tabs
+        st.write("##")
+        st.button("Get Insights", help="To Get New Insights : change the date, press this button, use physic powers")
+      
+    def set_selected_date_from_last_active_tab() -> datetime.date|tuple: # technically isn't returning a datetime object but a datewidget object but meh same same and probs convert it anyways
+        """ """
+        use_vs_selected_date_dict = {1:selected_date_1, 2:(selected_date_2_start, selected_date_2_end), 3:selected_date_3, 4:selected_date_4}
+        use_date = last_active_tab(want_return=True)
+        return(use_vs_selected_date_dict[use_date])
 
-    # BUG - URGENT/FIRST 
-    # TODO - ABANDON THIS ALL STORES IDEA FOR NOW FFS!!!!!
-    with userSelectCol:
-        storeTab1, storeTab2 = st.tabs(["Select Stores", "All Stores"])
-        with storeTab1:
-            selected_stores_1 = st.multiselect("Choose The Store", options=base_stores_list, default=["Chesterfield"])
-        with storeTab2:
-            selected_stores_2 = st.multiselect("Choose The Store", options=base_stores_list, default=base_stores_list, disabled=True)
-            st.warning("Don't worry it's active, you just can't change the selections here")
-    
-    # TODO 
-    # could make function? idk but defo can do with dictionary ting!
-    use_date = last_active_tab(want_return=True)
-    if use_date == 1:
-        selected_date = selected_date_1
-    elif use_date == 2:
-        selected_date = selected_date_2
-
-    print("selected_date", selected_date)
+    selected_date = set_selected_date_from_last_active_tab()
 
     # ---- VISUAL CLARITY STORE PRINT ----
 

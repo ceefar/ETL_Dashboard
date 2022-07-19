@@ -102,17 +102,19 @@ def create_stores_query(user_stores_list:list, need_where:bool = True) -> str:
     if need_where:
         where_part = "WHERE "
     else:
-        need_where = ""
+        where_part = " "
 
     # if only one store then the query is simply the store itself
     if len(user_stores_list) == 1:
         return(f"{where_part}store_name = '{user_stores_list[0]}'")
+    # if 
+    elif len(user_stores_list) == 0 or user_stores_list[0] == "":
+        return(f"{where_part}store_name = 'Chesterfield'")
     # else if the length is larger than 1 then we must join the stores dynamically for the resulting query
     else:
         final_query = " OR store_name=".join(list(map(lambda x: f"'{x}'",user_stores_list)))
         final_query = f"{where_part} (store_name=" + final_query + ")"
         return(final_query)
-
 
 
 @st.cache
