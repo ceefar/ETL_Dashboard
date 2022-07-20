@@ -18,12 +18,11 @@ dashboard home
 ACTUAL TODO
 *************
 insights stuff 
-    - adding in the compare 2 items code now, but must add none functionality (may even be a checkbox/toggle instead of multiselect?)
-    - artist
-    - cached
-    - tidy up and comment
-    - portfolio mode
+    - dates stuff (maybe just 1 or 2 tabs for now)
     - actual new insights deep dive
+    - portfolio mode
+    - artist
+    - tidy up and comment
 
 
 dashboard
