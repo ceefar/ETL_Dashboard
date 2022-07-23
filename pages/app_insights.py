@@ -5,7 +5,7 @@ import streamlit as st
 import streamlit.components.v1 as stc
 from streamlit.errors import StreamlitAPIException
 # for date time objects
-import datetime # from datetime import datetime
+import datetime
 # for db integration
 import db_integration as db
 # for images and img manipulation
@@ -509,6 +509,9 @@ def run():
 
         # the key/int of the last active tab for deciding whether want results to have week based tab display
         active_tab_key = last_active_tab(want_return=True)
+
+        # TODOASAP - FOR IF IS TAB 1 (just 1 date)
+
         # if is a "BETWEEN" date query, then add in new column after the CONCAT part of the SELECT statement to also include the date (for making tabs)
         if active_tab_key != 1:
             post_concat_addition = ", DATE(d.time_stamp) AS theDate "
@@ -516,13 +519,13 @@ def run():
             post_concat_addition = " "
 
         # get data for left side
-        hour_cups_data_2_adv = get_hour_cups_data(flavour_1_concat, selected_stores_1, selected_date, item_selector_1, final_size_select_1, final_flav_select_1, post_concat_addition)
+        hour_cups_data_1_adv = get_hour_cups_data(flavour_1_concat, selected_stores_1, selected_date, item_selector_1, final_size_select_1, final_flav_select_1, post_concat_addition)
         # get data for right side
-        hour_cups_data_3_adv = get_hour_cups_data(flavour_2_concat, selected_stores_2, selected_date, item_selector_2, final_size_select_2, final_flav_select_2, post_concat_addition)
+        hour_cups_data_2_adv = get_hour_cups_data(flavour_2_concat, selected_stores_2, selected_date, item_selector_2, final_size_select_2, final_flav_select_2, post_concat_addition)
         st.write("##")
         # log the results but only a tiny subset of the resulting queries else its far too chunky
-        logger.info("Result of get_hour_cups_data query (right/item 2)\nFirst : {0}\nLast : {1}".format(hour_cups_data_3_adv[0], hour_cups_data_3_adv[-1]))
-        logger.info("Result of get_hour_cups_data query (left/item 1)\nFirst : {0}\nLast : {1}".format(hour_cups_data_2_adv[0], hour_cups_data_2_adv[-1])) 
+        logger.info("\n\nResult of get_hour_cups_data query (left/item 1)\nFirst : {0}\nLast : {1}".format(hour_cups_data_1_adv[0], hour_cups_data_1_adv[-1]))
+        logger.info("\n\nResult of get_hour_cups_data query (right/item 2)\nFirst : {0}\nLast : {1}".format(hour_cups_data_2_adv[0], hour_cups_data_2_adv[-1])) 
         # temporary log of just the date part as currently working with it for multiple different types of date query, can be removed when done
         logger.info("Final var for date query part of get_hour_cups_data query (same both sides/items) - {0}".format(selected_date))
         
@@ -535,60 +538,142 @@ def run():
         # PORTFOLIO - ADD THIS STUFF
         # TODO - QUICKLY SEE IF CAN FIX THE STRING THING BUT COULD LEAVE FOR NOW TBF
 
+        # REMEMBER ONLY IF THIS NOT 1 ELSE WILL ERROR LIKE FUCK <<<<<<<<<<<<<<<<<<<<< !!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        if active_tab_key != 1:
+            pass
+        # for each tab
+        # TECHNICALLY ISNT REMEMBER ITS JUST PLUS 7 FROM THE FIRST DAY <<<<<<<<<<<<<<<<<<<<< !!!!!!!!!!!!!!!!!!!!!!!!!!!! IGNORE THIS FOR NOW THO
+
+        first_date_altair = hour_cups_data_2_adv[0][3]
+        end_of_first_week_date_altair = first_date_altair + datetime.timedelta(days=7)
+        logger.info("TEST 2 - {0}".format(end_of_first_week_date_altair))
+
+
+        # NEED SOME KINDA VAR TO KNOW HOW MANY WEEKS THERE ARE! (could then do tabs dynamically maybe)
+
 
         # left query (item 1)
         # empty lists used for transforming db data for df
-        just_names_list_2 = []
-        just_hour_list_2 = []
-        just_cupcount_list_2 = []
+        # first - for all dates, aka all of the data
+        just_names_list_1_all = []
+        just_hour_list_1_all = []
+        just_cupcount_list_1_all = []
+        # then - for the first set of 7 days, starting from the first given date
+        just_names_list_1_w0 = []
+        just_hour_list_1_w0 = []
+        just_cupcount_list_1_w0 = []        
 
-        for cups_data in hour_cups_data_2_adv:
-            just_cupcount_list_2.append(cups_data[0])
-            just_hour_list_2.append(cups_data[1])
-            just_names_list_2.append(cups_data[2])
+        for cups_data in hour_cups_data_1_adv:
+            # still want to run it once for everything regardless for the 'all dates' tab
+            just_cupcount_list_1_all.append(cups_data[0])
+            just_hour_list_1_all.append(cups_data[1])
+            just_names_list_1_all.append(cups_data[2])
+            # then run for the first week (first 7 days), starting from the first valid date
+            if cups_data[3] >= first_date_altair and cups_data[3] <= end_of_first_week_date_altair:
+                just_cupcount_list_1_w0.append(cups_data[0])
+                just_hour_list_1_w0.append(cups_data[1])
+                just_names_list_1_w0.append(cups_data[2])
+
 
         # right query (item 2)
         # empty lists used for transforming db data for df
-        just_names_list_3 = []
-        just_hour_list_3 = []
-        just_cupcount_list_3 = []
+        # first - for all dates, aka all of the data
+        just_names_list_2_all = []
+        just_hour_list_2_all = []
+        just_cupcount_list_2_all = []
+        # then - for the first set of 7 days, starting from the first given date
+        just_names_list_2_w0 = []
+        just_hour_list_2_w0 = []
+        just_cupcount_list_2_w0 = []  
 
-        for cups_data in hour_cups_data_3_adv:
-            just_cupcount_list_3.append(cups_data[0])
-            just_hour_list_3.append(cups_data[1])
-            just_names_list_3.append(cups_data[2])
+        for cups_data in hour_cups_data_2_adv:
+            just_cupcount_list_2_all.append(cups_data[0])
+            just_hour_list_2_all.append(cups_data[1])
+            just_names_list_2_all.append(cups_data[2])
+            # then run for the first week (first 7 days), starting from the first valid date
+            if cups_data[3] >= first_date_altair and cups_data[3] <= end_of_first_week_date_altair:
+                just_cupcount_list_2_w0.append(cups_data[0])
+                just_hour_list_2_w0.append(cups_data[1])
+                just_names_list_2_w0.append(cups_data[2])
 
-        # extended one of the lists with the other for the final dataframe 
-        just_names_list_2.extend(just_names_list_3)
-        just_hour_list_2.extend(just_hour_list_3)
-        just_cupcount_list_2.extend(just_cupcount_list_3)
 
-        # create the dataframe
-        source2 = pd.DataFrame({
-        "DrinkName": just_names_list_2,
-        "CupsSold":  just_cupcount_list_2,
-        "HourOfDay": just_hour_list_2
-        })
+        # extended one of the lists with the other for the final dataframe
+        # first - for all dates
+        just_names_list_1_all.extend(just_names_list_2_all)
+        just_cupcount_list_1_all.extend(just_cupcount_list_2_all)
+        just_hour_list_1_all.extend(just_hour_list_2_all)
+        # then - for the first set of 7 days
+        just_names_list_1_w0.extend(just_names_list_2_w0)
+        just_cupcount_list_1_w0.extend(just_cupcount_list_2_w0)
+        just_hour_list_1_w0.extend(just_hour_list_2_w0)
+        
 
-        # setup barchart
-        bar_chart2 = alt.Chart(source2).mark_bar().encode(
-            color="DrinkName:N",
-            x="sum(CupsSold):Q",
-            y="HourOfDay:N"
-        ).properties(height=300)
+        @st.cache
+        def create_dataframe_setup_chart(just_names_list_1_range, just_cupcount_list_1_range, just_hour_list_1_range):
+            """ create the dataframes and resulting altair chart data (barchart + text) for a given range and return the results for rendering """
 
-        # setup text labels for barchart
-        text2 = alt.Chart(source2).mark_text(dx=-10, dy=3, color='white', fontSize=12, fontWeight=600).encode(
-            x=alt.X('sum(CupsSold):Q', stack='zero'),
-            y=alt.Y('HourOfDay:N'),
-            detail='DrinkName:N',
-            text=alt.Text('sum(CupsSold):Q', format='.0f')
-        )
+            # create the dataframe
+            sawce = pd.DataFrame({
+            "DrinkName": just_names_list_1_range,
+            "CupsSold":  just_cupcount_list_1_range,
+            "HourOfDay": just_hour_list_1_range
+            })
 
-        # render the chart
+            # setup barchart
+            bar_chart = alt.Chart(sawce).mark_bar().encode(
+                color="DrinkName:N",
+                x="sum(CupsSold):Q",
+                y="HourOfDay:N"
+            ).properties(height=300)
+
+            # setup text labels for barchart
+            chart_text = alt.Chart(sawce).mark_text(dx=-10, dy=3, color='white', fontSize=12, fontWeight=600).encode(
+                x=alt.X('sum(CupsSold):Q', stack='zero'),
+                y=alt.Y('HourOfDay:N'),
+                detail='DrinkName:N',
+                text=alt.Text('sum(CupsSold):Q', format='.0f')
+            )
+
+            return((bar_chart,chart_text))
+
+
+        # create the tabs for the bar chart based on weeks
         st.write("##")
-        st.markdown("#### Title")
-        st.altair_chart(bar_chart2 + text2, use_container_width=True)
+        chartTab1, chartTab2 = st.tabs(["All Dates","Week 1"])
+
+        for i in range(0,2):
+            if i == 0:
+                # randomly changed to camelcase but meh
+                theTab = chartTab1
+                theTitle = "All Dates" # better title names as this is the tab name too? (also subtitles pls) defo include the actual dates DUHHHHH
+                theDataset = (just_names_list_1_all, just_cupcount_list_1_all, just_hour_list_1_all) 
+            else:
+                theTab = chartTab2
+                theTitle = "First Week" # defo include the actual dates DUHHHHHHHHHHHHHHHH
+                theDataset = (just_names_list_1_w0, just_cupcount_list_1_w0, just_hour_list_1_w0)
+            
+            with theTab:
+                # grab the data for the chart based on the dates
+                barchart, barchart_text = create_dataframe_setup_chart(theDataset[0], theDataset[1], theDataset[2])
+                # render the chart
+                st.markdown(f"#### {theTitle}")
+                st.altair_chart(barchart + barchart_text, use_container_width=True)
+
+
+
+
+# OK SO NEXT/RN
+# - dynamically doing all of the weeks
+#   - requires knowing how many weeks there are
+#   - tho ideally would be clean dynamic idm having a present amount of weeks thats capped based on how many there could be (tho better full dynamic if you can get it)
+#       - if was full dynamic would have to be done with for loops for all of it (and functions ig) just give it a quick think
+#   - ideally starting on a monday or sunday if is easy enough (should be tbf but should skip this part either way to do insights asap)
+# - dynamically doing the tabs some how
+# - tab stuff like title subtitle etc
+# - move the above function
+# - the actual insights stuff! :D
+# - ensure single day is still working fine btw (ideally with no tabs showing) 
+# - then maybe a quick break inbetween for some multithreading? (and things like github/website image thing??)
 
 
 

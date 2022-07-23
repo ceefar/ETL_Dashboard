@@ -26,6 +26,7 @@ insights stuff
     - portfolio mode
     - artist / calendar print\
     - finish dates tabs
+    - get main items from store new table (with stores) asap as this is the most computationally expensive query so far it seems
     - tidy up and comment
 
 dashboard stuff
