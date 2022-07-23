@@ -171,8 +171,10 @@ def create_size_query(multi_size_selector_x:list) -> str:
 
 
 @st.cache
-def get_hour_cups_data(flavour_x_concat, selected_stores_x, select_date, item_selector_x, final_size_select_x, final_flav_select_x):
+def get_hour_cups_data(flavour_x_concat, selected_stores_x, select_date, item_selector_x, final_size_select_x, final_flav_select_x, after_concat:str):
     """ groups together all of the complex queries in to the final query and returns the data - is cached """
+
+    # new after concat parameter is for adding in a date column to the return values for separating results based on the dates
 
     # ---- The Query Breakdown ----
     # select count of names of each unique item sold, with the unique items = concatinated name + size + flavour (if not null)
@@ -186,7 +188,7 @@ def get_hour_cups_data(flavour_x_concat, selected_stores_x, select_date, item_se
 
     # TODO - UPDATE CONCAT ORDER SO FLAVOUR IS FIRST (maybe add store) - NOTE HAVE TO TAKE COMMA INTO CONSIDERATION 
     cups_by_hour_query = f"SELECT COUNT(i.item_name) AS cupsSold, HOUR(d.time_stamp) AS theHour,\
-                            CONCAT({flavour_x_concat} i.item_name, i.item_size, store) AS item FROM CustomerItems i\
+                            CONCAT({flavour_x_concat} i.item_name, i.item_size, store) AS item {after_concat} FROM CustomerItems i\
                             INNER JOIN CustomerData d ON (i.transaction_id = d.transaction_id) WHERE store = '{selected_stores_x}'\
                             AND DATE(d.time_stamp) {select_date} AND i.item_name = '{item_selector_x}' AND {final_size_select_x}\
                             AND {final_flav_select_x} GROUP BY d.time_stamp, item"
@@ -375,7 +377,7 @@ def run():
         if st.session_state["last_active_date_tab"] == 3:
             to_make_date = date_dict[use_date][10:]
             end_of_week = db.get_from_db(f"SELECT DATE_ADD('{to_make_date}', INTERVAL 6 DAY);")
-            return((use_date, end_of_week[0][0]))
+            return((to_make_date, end_of_week[0][0]))
 
         # TODO 
         # FOR IS LITERALLY THE SAME AS OPTION 3, IT JUST BECOMES AN AND STATEMENT 
@@ -505,21 +507,34 @@ def run():
         flavour_1_concat = decide_to_include_flavour(flavour_1_is_null)
         flavour_2_concat = decide_to_include_flavour(flavour_2_is_null)
 
+        # the key/int of the last active tab for deciding whether want results to have week based tab display
+        active_tab_key = last_active_tab(want_return=True)
+        # if is a "BETWEEN" date query, then add in new column after the CONCAT part of the SELECT statement to also include the date (for making tabs)
+        if active_tab_key != 1:
+            post_concat_addition = ", DATE(d.time_stamp) AS theDate "
+        else:
+            post_concat_addition = " "
+
         # get data for left side
-        hour_cups_data_2_adv = get_hour_cups_data(flavour_1_concat, selected_stores_1, selected_date, item_selector_1, final_size_select_1, final_flav_select_1)
+        hour_cups_data_2_adv = get_hour_cups_data(flavour_1_concat, selected_stores_1, selected_date, item_selector_1, final_size_select_1, final_flav_select_1, post_concat_addition)
         # get data for right side
-        hour_cups_data_3_adv = get_hour_cups_data(flavour_2_concat, selected_stores_2, selected_date, item_selector_2, final_size_select_2, final_flav_select_2)
+        hour_cups_data_3_adv = get_hour_cups_data(flavour_2_concat, selected_stores_2, selected_date, item_selector_2, final_size_select_2, final_flav_select_2, post_concat_addition)
         st.write("##")
         # log the results but only a tiny subset of the resulting queries else its far too chunky
         logger.info("Result of get_hour_cups_data query (right/item 2)\nFirst : {0}\nLast : {1}".format(hour_cups_data_3_adv[0], hour_cups_data_3_adv[-1]))
         logger.info("Result of get_hour_cups_data query (left/item 1)\nFirst : {0}\nLast : {1}".format(hour_cups_data_2_adv[0], hour_cups_data_2_adv[-1])) 
+        # temporary log of just the date part as currently working with it for multiple different types of date query, can be removed when done
+        logger.info("Final var for date query part of get_hour_cups_data query (same both sides/items) - {0}".format(selected_date))
         
-        
+
+
+
+
         # ---- CREATE AND PRINT ALTAIR CHART OF RESULTS ----
 
         # PORTFOLIO - ADD THIS STUFF
         # TODO - QUICKLY SEE IF CAN FIX THE STRING THING BUT COULD LEAVE FOR NOW TBF
-        
+
 
         # left query (item 1)
         # empty lists used for transforming db data for df
