@@ -72,7 +72,7 @@ def create_stores_query(user_stores_list:list, need_where:bool = True, for_data:
 
 
 # TODO
-# THIS FUNCTION ACTUALLY NEEDS TO RUN AND MAKE A TABLE FOR THIS NOW, LEGIT NOTHING ELSE - THEN CAN QUERY FROM THAT 
+# SHOULD ACTUALLY MAKE A TABLE FOR THIS NOW INSTEAD - THEN (THIS FUNCTION) CAN QUERY FROM THAT 
 @st.cache
 def get_main_items_from_stores(user_store:str) -> list:
     """ write me"""
@@ -284,7 +284,7 @@ def run():
     userSelectCol, _, storeImg1, storeImg2, storeImg3, storeImg4, storeImg5 = st.columns([4,1,1,1,1,1,1]) 
     with userSelectCol:
         # ---- STORE SELECT ----
-        selected_stores_1 = st.multiselect("Choose The Store", options=base_stores_list, default=["Chesterfield"])
+        selected_stores_1 = st.multiselect("Choose The Store/s", options=base_stores_list, default=["Chesterfield"])
         
         # ---- DATE SELECT ----
         dateTab1, dateTab2, dateTab3, dateTab4, dateTab5, dateTabs6 = st.tabs(["Single Day", "Between 2 Dates", "Single Week", "Mulitple Weeks", "Full Month", "All Time"]) # multiple weeks is a maybe rn btw
@@ -295,13 +295,12 @@ def run():
             keynumb = int(run_button_key[-1:])
             last_active_tab(keynumb)
 
-
-
         # --- SINGLE DAY ----
         with dateTab1:
             selected_date_1 = st.date_input("What Date Would You Like Info On?", datetime.date(2022, 7, 5), max_value=last_valid_date, min_value=first_valid_date, on_change=last_active_tab, args=[1], key="TODO")  
             st.write("##")
             st.button("Get Insights", help="To Get New Insights : change the date, press this button, use physic powers", key="run_1", on_click=force_date_run_btn, args=["run_1"])
+        
         # ---- BETWEEN 2 DAYS ----
         with dateTab2:
             selected_date_2_start = st.date_input("What Start Date?", datetime.date(2022, 7, 1), max_value=last_valid_date, min_value=first_valid_date, on_change=last_active_tab, args=[2], key="TODO2")  
@@ -332,6 +331,7 @@ def run():
             st.write("##")
             st.button("Get Insights", help="To Get New Insights : change the date, press this button, use physic powers", key="run_3", on_click=force_date_run_btn, args=["run_3"])        
         
+        # ---- MULTIPLE WEEKS [NOT IMPLEMENTED YET] ----
         with dateTab4:
             # ensure it isn't going to error due to the default
             if len(stores_available_weeks) > 1:
@@ -344,12 +344,25 @@ def run():
             st.write("##")
             st.button("Get Insights", help="To Get New Insights : change the date, press this button, use physic powers", key="run_4", on_click=force_date_run_btn, args=["run_4"])        
 
+    # var that holds the key/on_change args from each date select plus the variables that store the result, used for getting the last active tab
     use_vs_selected_date_dict = {1:selected_date_1, 2:(selected_date_2_start, selected_date_2_end), 3:selected_date_3, 4:selected_date_4}
 
     def set_selected_date_from_last_active_tab(date_dict:dict) -> datetime.date|tuple: # technically isn't returning a datetime object but a datewidget object but meh same same and probs convert it anyways
-        """ write me """
+        """ use the on_change arguments (which is just the key as an int) from each date select and returns the variables holding the relevant dates """
         use_date = last_active_tab(want_return=True)
+
+        # option 3 is week number with week beginning so we need the date at week end too
+        if st.session_state["last_active_date_tab"] == 3:
+            to_make_date = date_dict[use_date][10:]
+            end_of_week = db.get_from_db(f"SELECT DATE_ADD('{to_make_date}', INTERVAL 6 DAY);")
+            return((use_date, end_of_week[0][0]))
+
+        # TODO 
+        # FOR IS LITERALLY THE SAME AS OPTION 3, IT JUST BECOMES AN AND STATEMENT 
+        #   - unless ig the dates are next to each other but meh doesn't make enough diff so just do one way with AND
+            
         return(date_dict[use_date])    
+    # END NESTED FUNCTION
 
     # set the selected date based on the last active (modified user select) tab
     selected_date = set_selected_date_from_last_active_tab(use_vs_selected_date_dict)
@@ -491,6 +504,8 @@ def run():
         # PORTFOLIO - ADD THIS STUFF
         # TODO - QUICKLY SEE IF CAN FIX THE STRING THING BUT COULD LEAVE FOR NOW TBF
 
+        # BUG - LONDON CAMDEN SPECIALITY TEA EARL GREY WTF 
+
         # left query (item 1)
         # empty lists used for transforming db data for df
         just_names_list_2 = []
@@ -548,4 +563,5 @@ def run():
 
 
 # ---- DRIVER ----
-run()
+if __name__ == "__main__":
+    run()

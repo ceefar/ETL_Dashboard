@@ -3,6 +3,7 @@ THINGS TO ADD
 logging
 ci/cd 
 unittesting
+base data needs to just be available, like stored in an array or dict or whatever (same format it would get back from a query)
 
 
 PAGES
@@ -15,17 +16,23 @@ compare between dates
 dashboard home
 
 
+BUGS
+*************
+# BUG - LONDON CAMDEN SPECIALITY TEA EARL GREY WTF 
+
+
 ACTUAL TODO
 *************
 insights stuff 
-    - dates stuff (maybe just 1 or 2 tabs for now)
+    - do the above bug real quick?
     - actual new insights deep dive
     - portfolio mode
-    - artist
+    - artist / calendar print\
+    - finish dates tabs
     - tidy up and comment
 
 
-dashboard
+dashboard stuff
     - hate to say it but probably best to rewrite dashboard page now as is just a mess & nothing is working lol
     - plan it, keep it simple, and it will be easy tbf
     - and dont forget to add in portfolio mode stuff 
