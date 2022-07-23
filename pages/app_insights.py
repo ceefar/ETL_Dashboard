@@ -545,36 +545,32 @@ def run():
             weeks_between_dates = (days_difference // 7) # max 6 weeks btw
             if (days_difference % 7) != 0:
                 weeks_between_dates += 1
-
-            # log the hour cup results for multi-dates but only a tiny subset of the resulting queries else its far too chunky
-            logger.info("\n\nResult of get_hour_cups_data query (left/item 1)\nFirst : {0}\nLast : {1}".format(hour_cups_data_1_adv[0], hour_cups_data_1_adv[-1]))
-            logger.info("\n\nResult of get_hour_cups_data query (right/item 2)\nFirst : {0}\nLast : {1}".format(hour_cups_data_2_adv[0], hour_cups_data_2_adv[-1])) 
-            # temporary log of just the date part as currently working with it for multiple different types of date query, can be removed when done
-            logger.info("Final var for date query part of get_hour_cups_data query (same both sides/items) - {0}".format(selected_date))
         else: 
+            # set these as defaults so they don't error
             weeks_between_dates, first_date_altair, end_of_first_week_date_altair = 0, 0, 0
             
-
+        # log the hour cup results for multi-dates but only a tiny subset of the resulting queries else its far too chunky
+        logger.info("\n\nResult of get_hour_cups_data query (left/item 1)\nFirst : {0}\nLast : {1}".format(hour_cups_data_1_adv[0], hour_cups_data_1_adv[-1]))
+        logger.info("\n\nResult of get_hour_cups_data query (right/item 2)\nFirst : {0}\nLast : {1}".format(hour_cups_data_2_adv[0], hour_cups_data_2_adv[-1])) 
 
         # left query (item 1)
-        # empty lists used for transforming db data for df
-        # first - for all dates, aka all of the data
-        just_names_list_1_all = []
-        just_hour_list_1_all = []
-        just_cupcount_list_1_all = []
-        # then - for the possible max weeks, starting from the first given date - since weeks is a fixed numb this just made more sense
-        just_names_list_1_w0, just_names_list_1_w1, just_names_list_1_w2, just_names_list_1_w3, just_names_list_1_w4, just_names_list_1_w5= [], [], [], [], [], []
-        just_hour_list_1_w0, just_hour_list_1_w1, just_hour_list_1_w2, just_hour_list_1_w3, just_hour_list_1_w4, just_hour_list_1_w5 = [], [], [], [], [], []
-        just_cupcount_list_1_w0, just_cupcount_list_1_w1, just_cupcount_list_1_w2, just_cupcount_list_1_w3, just_cupcount_list_1_w4, just_cupcount_list_1_w5 = [], [], [], [], [], []      
+        # empty lists used for transforming db data for df, 'all' covers all dates, the rest is week by week
+        just_names_list_1_all, just_names_list_1_w0, just_names_list_1_w1, just_names_list_1_w2, just_names_list_1_w3, just_names_list_1_w4, just_names_list_1_w5= [], [], [], [], [], [], []
+        just_hour_list_1_all, just_hour_list_1_w0, just_hour_list_1_w1, just_hour_list_1_w2, just_hour_list_1_w3, just_hour_list_1_w4, just_hour_list_1_w5 = [], [], [], [], [], [], []
+        just_cupcount_list_1_all, just_cupcount_list_1_w0, just_cupcount_list_1_w1, just_cupcount_list_1_w2, just_cupcount_list_1_w3, just_cupcount_list_1_w4, just_cupcount_list_1_w5 = [], [], [], [], [], [], []      
 
+        # if just select 1 date
+        if weeks_between_dates == 0:
+            for cups_data in hour_cups_data_1_adv:
+                just_cupcount_list_1_all.append(cups_data[0])
+                just_hour_list_1_all.append(cups_data[1])
+                just_names_list_1_all.append(cups_data[2])
 
         # vars for start and end of week as datetime.date objects
         week_start_var, week_end_var = first_date_altair, end_of_first_week_date_altair
 
-        # run for the needed weeks (sets of 7 days), starting from the first valid date
+        # run for the needed weeks (sets of 7 days), starting from the first valid date, won't be run for single date btw which is perf obvs
         for weeknum in range(1, weeks_between_dates + 1):
-
-            print("weeks_between_dates = ", weeks_between_dates)
 
             # dict that sorts which list each loops results will be appended to
             weeks_dict = {1:(just_cupcount_list_1_w0, just_hour_list_1_w0, just_names_list_1_w0),
@@ -585,16 +581,13 @@ def run():
                             6:(just_cupcount_list_1_w5, just_hour_list_1_w5, just_names_list_1_w5),
                             }
 
-            print("weeknum = ", weeknum)
-            print("week_start_var = ", week_start_var)
-            print("week_end_var = ", week_end_var)
-
             # set vars for the list that will be appended to based on the weeknum
             just_cupcount_list_1_week, just_hour_list_1_week, just_names_list_1_week = weeks_dict[weeknum][0], weeks_dict[weeknum][1], weeks_dict[weeknum][2]
 
             # grab the cups data and add it to the relevant list
             for cups_data in hour_cups_data_1_adv:
-                # what you should actually do then is slice off the preceding stuff thats already been added # TODO - else pointless looping
+                # TODO - slice thing below else is some minor pointless looping
+                # what you should actually do then is slice off the preceding stuff thats already been added
 
                 # if statement to only grab data for the given week
                 if cups_data[3] >= week_start_var and cups_data[3] <= week_end_var:
@@ -602,60 +595,40 @@ def run():
                     just_hour_list_1_week.append(cups_data[1])
                     just_names_list_1_week.append(cups_data[2])
 
-
                 # if reached a date thats greater than increment week var
                 # TODOASAP
                 # this will cut off one piece of data, ig save it outside the loop and just tag it on? <<<<<<<<<<<<<<<<<<<<<<<<< !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
                 if cups_data[3] > week_end_var:
-                    just_cupcount_list_1_week.append(cups_data[0])
-                    just_hour_list_1_week.append(cups_data[1])
-                    just_names_list_1_week.append(cups_data[2])
+                    # had been appending it here, but that will be appending it to the wrong (before) week
+                    #just_cupcount_list_1_week.append(cups_data[0])
+                    #just_hour_list_1_week.append(cups_data[1])
+                    #just_names_list_1_week.append(cups_data[2])
                     weeknum += 1
                     week_start_var = week_start_var + datetime.timedelta(days=8)
                     week_end_var = week_start_var + datetime.timedelta(days=7)
-                    print("last_date_altair", last_date_altair)
-                    # though we're creating the weeks, dont allow the final date to be greater than the users selection
+                    # though we're calculating and using the weeks in this loop, still dont allow the final date to be greater than the users selection
                     if week_end_var > last_date_altair:
                         week_end_var = last_date_altair
                     break
 
-            # TODOASAP
-            # SO NOW WORKING AS EXPECTED BUT IF YOU FINISH BANG ON THE WEEK (so 21 days for 3 weeks, its bleeding into the next weeks tab)
-            # SHOULD BE AN EASY ENOUGH FIX
-
-            # MEH SHOULD SAY KINDA AS TOTALS FROM ALL vs SUM ALL WEEKS STILL WRONG AF
-            # WAIT NAH MAYBE IT IS WORKING FINE BUT ITS ALL THAT IS WRONG!!!
 
         # TODOASAP - MAKE THIS A FUNCTION
         # 'all dates' is just everything together
-        just_cupcount_list_1_all.extend(just_cupcount_list_1_w0)
-        just_cupcount_list_1_all.extend(just_cupcount_list_1_w1)
-        just_cupcount_list_1_all.extend(just_cupcount_list_1_w2)
-        just_cupcount_list_1_all.extend(just_cupcount_list_1_w3)
-        just_cupcount_list_1_all.extend(just_cupcount_list_1_w4)
-        just_cupcount_list_1_all.extend(just_cupcount_list_1_w5)
+        cupcount_weeks_list = [just_cupcount_list_1_w0,just_cupcount_list_1_w1,just_cupcount_list_1_w2,just_cupcount_list_1_w3,just_cupcount_list_1_w4,just_cupcount_list_1_w5]
+        for cupcount_list in cupcount_weeks_list:    
+            just_cupcount_list_1_all.extend(cupcount_list)
 
-        just_hour_list_1_all.extend(just_hour_list_1_w0)
-        just_hour_list_1_all.extend(just_hour_list_1_w1)
-        just_hour_list_1_all.extend(just_hour_list_1_w2)
-        just_hour_list_1_all.extend(just_hour_list_1_w3)
-        just_hour_list_1_all.extend(just_hour_list_1_w4)
-        just_hour_list_1_all.extend(just_hour_list_1_w5)
+        justhour_weeks_list = [just_hour_list_1_w0,just_hour_list_1_w1,just_hour_list_1_w2,just_hour_list_1_w3,just_hour_list_1_w4,just_hour_list_1_w5]
+        for justhour_list in justhour_weeks_list:
+            just_hour_list_1_all.extend(justhour_list)
 
-        just_names_list_1_all.extend(just_names_list_1_w0)
-        just_names_list_1_all.extend(just_names_list_1_w1)
-        just_names_list_1_all.extend(just_names_list_1_w2)
-        just_names_list_1_all.extend(just_names_list_1_w3)
-        just_names_list_1_all.extend(just_names_list_1_w4)
-        just_names_list_1_all.extend(just_names_list_1_w5)
+        justnames_weeks_list = [just_names_list_1_w0,just_names_list_1_w1,just_names_list_1_w2,just_names_list_1_w3,just_names_list_1_w4,just_names_list_1_w5]
+        for justnames_list in justnames_weeks_list:
+            just_names_list_1_all.extend(justnames_list)
 
 
         # TODOASAP
-        # THIS FUCKS UP ALL - BUT FOR ALL JUST APPEND ALL THE VALID WEEKS TOGETHER DUH!
-        # SHOULD JUST TAKE ALL OUT AND DO ALL AT THE END WITH THE APPEND OR WHATEVER JOIN DFs
-        # ALSO CRITICAL -> HAVE REMOVED THE ONLY ONE DATE TRY EXCEPT INDEXERROR FOR NOW
-
-        # still want to run it once for everything regardless for the 'all dates' tab
+        # HAVE REMOVED THE ONLY ONE DATE TRY EXCEPT INDEXERROR FOR NOW - might not need anymore btw but what if not data for a single day (find out duh)
 
 
         # right query (item 2)
@@ -684,6 +657,7 @@ def run():
                 pass
 
 
+        # TODOASAP - still need to add this back btw
         # extended one of the lists with the other for the final dataframe
         # first - for all dates
         #just_names_list_1_all.extend(just_names_list_2_all)
@@ -695,6 +669,7 @@ def run():
         #just_hour_list_1_w0.extend(just_hour_list_2_w0)
         
 
+        # TODOASAP - move this outside of run function
         @st.cache
         def create_dataframe_setup_chart(just_names_list_1_range, just_cupcount_list_1_range, just_hour_list_1_range):
             """ create the dataframes and resulting altair chart data (barchart + text) for a given range and return the results for rendering """
@@ -727,13 +702,15 @@ def run():
         # TODOASAP - ADD SUBTITLE N SHIT
         # create the tabs for the bar chart based on weeks, ternary statements show tabs based on amount of weeks between user selected dates
         st.write("##")
-        chartTab0, chartTab1, chartTab2, chartTab3, chartTab4, chartTab5, chartTab6 = st.tabs(["All Dates","Week 1",
+        chartTab0, chartTab1, chartTab2, chartTab3, chartTab4, chartTab5, chartTab6 = st.tabs([f"{'All Dates' if weeks_between_dates != 0 else 'Selected Date'}",
+                                                                                                f"{'Week 1' if weeks_between_dates >= 1 else ' '}",
                                                                                                 f"{'Week 2' if weeks_between_dates >= 2 else ' '}",
                                                                                                 f"{'Week 3' if weeks_between_dates >= 3 else ' '}",
                                                                                                 f"{'Week 4' if weeks_between_dates >= 4 else ' '}",
                                                                                                 f"{'Week 5' if weeks_between_dates >= 5 else ' '}",
                                                                                                 f"{'Week 6' if weeks_between_dates >= 6 else ' '}"])
-        chartTab_dict = {0:(chartTab0, "All Dates", (just_names_list_1_all, just_cupcount_list_1_all, just_hour_list_1_all)),
+        # TODO - convert the ternary condition here to a var, then to a datetime object, then use strftime to get a better date
+        chartTab_dict = {0:(chartTab0, f"{'All Dates' if weeks_between_dates != 0 else selected_date[4:14]}", (just_names_list_1_all, just_cupcount_list_1_all, just_hour_list_1_all)),
                             1:(chartTab1, "First Week", (just_names_list_1_w0, just_cupcount_list_1_w0, just_hour_list_1_w0)),
                             2:(chartTab2, "Some Title", (just_names_list_1_w1, just_cupcount_list_1_w1, just_hour_list_1_w1)),
                             3:(chartTab3, "Some Title", (just_names_list_1_w2, just_cupcount_list_1_w2, just_hour_list_1_w2)),
@@ -762,17 +739,29 @@ def run():
 # - dynamically doing all of the weeks
 #   - extend function, wtf random markdown number, comments, right side (item 2), single week, multiple weeks
 #   - ideally starting on a monday or sunday if is easy enough (should be tbf but should skip this part either way to do insights asap)
-# - dynamically doing the tabs some how
-# - tab stuff like title subtitle etc
-# - move the above function
 # - the actual insights stuff! :D
+# - logging, unittest, ci/cd basics
+# - that function to improve product pricing and generally speed up the shit + multithreading/processing testing
+# - tab stuff like title subtitle etc
+# - move functions, ig and comment and clean up a bit quickly
 # - ensure single day is still working fine btw (ideally with no tabs showing) 
+# - obvs 100 needs portfolio mode before done
+# - the calendar print
+    # - also tho owt else could do with artist?
+# - make insights the homepages, and have dash as sumnt else, means insights should set to wide (and rerun to ensure is wide thing btw)
+#   - also ig can jazz it up a teeny bit (gifs n shit)
 # - then maybe a quick break inbetween for some multithreading? (and things like github/website image thing??)
+#   - so much this because havent checked run times on live db
+#   - 100% have the initial data preloaded (to cache?)
+#   - remember most taxing thing is what i want a new/improved table for
 # - also check history to find that kid that had the exact same condition as me as can't remember what else he posted
+
 
 # NO CAP, ONCE THIS INSIGHTS IS DONE MOVE ON TO OTHER (QUICKER PROJECTS LIKE 2 IDEAS AM JUST GUNA COPY AND CANCER TING)
 # - one was the map idea (best suited area for you, could add in whatever user selects I want tbh but house price and like council tax, average shop sumnt is good start)
 # - other was skal.es week time thing
+# - obvs my other 2 projects but really just the new atmoic which is 80HD, focus on just one thing ffs get that done and live with user login and db stuff then and only then move on
+
 
 # ---- DRIVER ----
 if __name__ == "__main__":

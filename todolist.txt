@@ -32,6 +32,7 @@ insights stuff
 # NO CAP, ONCE THIS INSIGHTS IS DONE MOVE ON TO OTHER (QUICKER PROJECTS LIKE 2 IDEAS AM JUST GUNA COPY AND CANCER TING)
 # - one was the map idea (best suited area for you, could add in whatever user selects I want tbh but house price and like council tax, average shop sumnt is good start)
 # - other was skal.es week time thing
+# - obvs my other 2 projects but really just the new atmoic which is 80HD, focus on just one thing ffs get that done and live with user login and db stuff then and only then move on
 
 dashboard stuff
     - hate to say it but probably best to rewrite dashboard page now as is just a mess & nothing is working lol
