@@ -614,6 +614,7 @@ def run():
                     week_start_var = week_start_var + datetime.timedelta(days=8)
                     week_end_var = week_start_var + datetime.timedelta(days=7)
                     print("last_date_altair", last_date_altair)
+                    # though we're creating the weeks, dont allow the final date to be greater than the users selection
                     if week_end_var > last_date_altair:
                         week_end_var = last_date_altair
                     break
@@ -723,13 +724,15 @@ def run():
             return((bar_chart,chart_text))
 
 
-        # create the tabs for the bar chart based on weeks
-
-        # sumnt sumnt weeks_between_dates if less than or equal to ternary statement else "-"
-        chartTab_weekNames = ["All Dates","Week 1","Week 2","Week 3","Week 4","Week 5","Week 6"]
-
+        # TODOASAP - ADD SUBTITLE N SHIT
+        # create the tabs for the bar chart based on weeks, ternary statements show tabs based on amount of weeks between user selected dates
         st.write("##")
-        chartTab0, chartTab1, chartTab2, chartTab3, chartTab4, chartTab5, chartTab6 = st.tabs(["All Dates","Week 1","Week 2","Week 3","Week 4","Week 5","Week 6"])
+        chartTab0, chartTab1, chartTab2, chartTab3, chartTab4, chartTab5, chartTab6 = st.tabs(["All Dates","Week 1",
+                                                                                                f"{'Week 2' if weeks_between_dates >= 2 else ' '}",
+                                                                                                f"{'Week 3' if weeks_between_dates >= 3 else ' '}",
+                                                                                                f"{'Week 4' if weeks_between_dates >= 4 else ' '}",
+                                                                                                f"{'Week 5' if weeks_between_dates >= 5 else ' '}",
+                                                                                                f"{'Week 6' if weeks_between_dates >= 6 else ' '}"])
         chartTab_dict = {0:(chartTab0, "All Dates", (just_names_list_1_all, just_cupcount_list_1_all, just_hour_list_1_all)),
                             1:(chartTab1, "First Week", (just_names_list_1_w0, just_cupcount_list_1_w0, just_hour_list_1_w0)),
                             2:(chartTab2, "Some Title", (just_names_list_1_w1, just_cupcount_list_1_w1, just_hour_list_1_w1)),
@@ -757,9 +760,7 @@ def run():
 
 # OK SO NEXT/RN
 # - dynamically doing all of the weeks
-#   - requires knowing how many weeks there are
-#   - tho ideally would be clean dynamic idm having a present amount of weeks thats capped based on how many there could be (tho better full dynamic if you can get it)
-#       - if was full dynamic would have to be done with for loops for all of it (and functions ig) just give it a quick think
+#   - extend function, wtf random markdown number, comments, right side (item 2), single week, multiple weeks
 #   - ideally starting on a monday or sunday if is easy enough (should be tbf but should skip this part either way to do insights asap)
 # - dynamically doing the tabs some how
 # - tab stuff like title subtitle etc
@@ -769,7 +770,9 @@ def run():
 # - then maybe a quick break inbetween for some multithreading? (and things like github/website image thing??)
 # - also check history to find that kid that had the exact same condition as me as can't remember what else he posted
 
-
+# NO CAP, ONCE THIS INSIGHTS IS DONE MOVE ON TO OTHER (QUICKER PROJECTS LIKE 2 IDEAS AM JUST GUNA COPY AND CANCER TING)
+# - one was the map idea (best suited area for you, could add in whatever user selects I want tbh but house price and like council tax, average shop sumnt is good start)
+# - other was skal.es week time thing
 
 # ---- DRIVER ----
 if __name__ == "__main__":

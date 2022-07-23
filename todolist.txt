@@ -29,6 +29,10 @@ insights stuff
     - get main items from store new table (with stores) asap as this is the most computationally expensive query so far it seems
     - tidy up and comment
 
+# NO CAP, ONCE THIS INSIGHTS IS DONE MOVE ON TO OTHER (QUICKER PROJECTS LIKE 2 IDEAS AM JUST GUNA COPY AND CANCER TING)
+# - one was the map idea (best suited area for you, could add in whatever user selects I want tbh but house price and like council tax, average shop sumnt is good start)
+# - other was skal.es week time thing
+
 dashboard stuff
     - hate to say it but probably best to rewrite dashboard page now as is just a mess & nothing is working lol
     - plan it, keep it simple, and it will be easy tbf
