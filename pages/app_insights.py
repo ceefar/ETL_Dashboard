@@ -14,7 +14,23 @@ import PIL
 import pandas as pd
 # for detailed data visualisation
 import altair as alt
+# for logging
+import logging
 
+
+# ---- LOGGER ----
+
+# create and configure insights page logger, all log levels, custom log message, overwrites file per run instead of appending
+LOG_FORMAT = "%(levelname)s %(asctime)s - %(message)s"
+logging.basicConfig(filename = "applogs/insights.log", level = logging.DEBUG, format = LOG_FORMAT, filemode = "w")
+logger = logging.getLogger()
+
+# test messages to copy
+#logger.debug("Harmless debug message") # 10
+#logger.info("Some useful info") # 20
+#logger.warning("I'm sorry I can't do that") # 30
+#logger.error("This would cause an error") # 40
+#logger.critical("The program became sentient, run") # 50
 
 
 # ---- FUNCTIONS ----
@@ -71,8 +87,9 @@ def create_stores_query(user_stores_list:list, need_where:bool = True, for_data:
         return(final_query)
 
 
-# TODO
-# SHOULD ACTUALLY MAKE A TABLE FOR THIS NOW INSTEAD - THEN (THIS FUNCTION) CAN QUERY FROM THAT 
+# TODOASAP 
+# SHOULD ACTUALLY MAKE A TABLE FOR THIS NOW INSTEAD, LIKE THE PRODUCT PRICING TABLE BUT SHOULD INCLUDE THE STORES DUHHHHH
+#  - THEN (THIS FUNCTION) CAN QUERY FROM THAT 
 @st.cache
 def get_main_items_from_stores(user_store:str) -> list:
     """ write me"""
@@ -173,6 +190,7 @@ def get_hour_cups_data(flavour_x_concat, selected_stores_x, select_date, item_se
                             INNER JOIN CustomerData d ON (i.transaction_id = d.transaction_id) WHERE store = '{selected_stores_x}'\
                             AND DATE(d.time_stamp) {select_date} AND i.item_name = '{item_selector_x}' AND {final_size_select_x}\
                             AND {final_flav_select_x} GROUP BY d.time_stamp, item"
+    logger.info("Final hour x cups Altair chart query (get_hour_cups_data) - {0}".format(cups_by_hour_query)) 
     hour_cups_data = db.get_from_db(cups_by_hour_query)  
     return(hour_cups_data) 
 
@@ -228,6 +246,7 @@ def run():
         st.session_state["last_active_date_tab"] = 1  
     # empty var for selected stores last active tab functionality
     selected_date = ""
+
 
     # ---- SIDEBAR ----
 
@@ -344,6 +363,7 @@ def run():
             st.write("##")
             st.button("Get Insights", help="To Get New Insights : change the date, press this button, use physic powers", key="run_4", on_click=force_date_run_btn, args=["run_4"])        
 
+
     # var that holds the key/on_change args from each date select plus the variables that store the result, used for getting the last active tab
     use_vs_selected_date_dict = {1:selected_date_1, 2:(selected_date_2_start, selected_date_2_end), 3:selected_date_3, 4:selected_date_4}
 
@@ -415,8 +435,6 @@ def run():
     # if anything just make walkthrough recordings of my favourite bits (and other git projects too ooooo)
 
 
-    # HUGE - TO LEARN HOW TO DO MULTITHREADING OR WHATEVER ASYNC WHATEVER
-    # FOR BOTH SIDES OF THE QUERY TO RUN AT THE SAME TIME
 
 
     # TODO 
@@ -425,16 +443,11 @@ def run():
     # OK BOOM STILL HAVE TABS IDEA FOR CHARTS BUT HAVE IT LIKE EITHER DIFFERENT CHART TYPES OR DIFFERENT AXIS OR SUMNT IDK
     # IN THEORY IF WE GRAB THE DATE IN THE SELECT STATEMENT(or store or whatever but date best as can do weeks n shit)
     # CAN HAVE TABS FOR DATE (i.e. weeks) AND ALL TIME, ETC
-
-
-
-
-    # TODO
     # ALSO
     # MAYBE FOR ADVANCED MODE HAVE INDIVIDUAL TOGGLES TO REMOVE THINGS OR ALWAYS USE MULTISELECT IDK!
 
 
-    # ALTAIR CHART product sold by hour of day (COMPARE 2?!) - INDIVIDUAL ITEM VERSION OF ABOVE
+    # ALTAIR CHART product sold by hour of day
     with st.container():
         st.write(f"### :bulb: Insight - Compare Two Items") 
 
@@ -465,8 +478,8 @@ def run():
 
 
         # ---- USER SELECTS ----
-        # get list (well actually tuples) of flavours for the user selected item from the database
-        
+        logger.debug("Get list of flavours from the db, for the users selected item") # actually tuples not list but whatever
+
         with item1Col:
             final_item_flavours_list = get_flavours_for_item(selected_stores_1, item_selector_1)
             multi_flav_selector_1 = st.multiselect(label=f"Choose A Flavour For {item_selector_1}", key="multi_flav_select_1", options=final_item_flavours_list, default=final_item_flavours_list[0])
@@ -497,14 +510,16 @@ def run():
         # get data for right side
         hour_cups_data_3_adv = get_hour_cups_data(flavour_2_concat, selected_stores_2, selected_date, item_selector_2, final_size_select_2, final_flav_select_2)
         st.write("##")
+        # log the results but only a tiny subset of the resulting queries else its far too chunky
+        logger.info("Result of get_hour_cups_data query (right/item 2)\nFirst : {0}\nLast : {1}".format(hour_cups_data_3_adv[0], hour_cups_data_3_adv[-1]))
+        logger.info("Result of get_hour_cups_data query (left/item 1)\nFirst : {0}\nLast : {1}".format(hour_cups_data_2_adv[0], hour_cups_data_2_adv[-1])) 
         
-
+        
         # ---- CREATE AND PRINT ALTAIR CHART OF RESULTS ----
 
         # PORTFOLIO - ADD THIS STUFF
         # TODO - QUICKLY SEE IF CAN FIX THE STRING THING BUT COULD LEAVE FOR NOW TBF
-
-        # BUG - LONDON CAMDEN SPECIALITY TEA EARL GREY WTF 
+        
 
         # left query (item 1)
         # empty lists used for transforming db data for df

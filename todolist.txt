@@ -4,6 +4,8 @@ logging
 ci/cd 
 unittesting
 base data needs to just be available, like stored in an array or dict or whatever (same format it would get back from a query)
+test multithreading and multiprocessing to implement in this but do in an actually test file as yeah is more complicated than just add and done
+    - see bookmarks for links
 
 
 PAGES
@@ -16,11 +18,6 @@ compare between dates
 dashboard home
 
 
-BUGS
-*************
-# BUG - LONDON CAMDEN SPECIALITY TEA EARL GREY WTF 
-
-
 ACTUAL TODO
 *************
 insights stuff 
@@ -30,7 +27,6 @@ insights stuff
     - artist / calendar print\
     - finish dates tabs
     - tidy up and comment
-
 
 dashboard stuff
     - hate to say it but probably best to rewrite dashboard page now as is just a mess & nothing is working lol
