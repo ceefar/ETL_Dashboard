@@ -22,7 +22,7 @@ import logging
 
 # create and configure insights page logger, all log levels, custom log message, overwrites file per run instead of appending
 LOG_FORMAT = "%(levelname)s %(asctime)s - %(message)s"
-logging.basicConfig(filename = "applogs/insights.log", level = logging.DEBUG, format = LOG_FORMAT, filemode = "w")
+logging.basicConfig(filename = "C:/Users/robfa/Downloads/ETL_Dashboard/applogs/insights.log", level = logging.DEBUG, format = LOG_FORMAT, filemode = "w")
 logger = logging.getLogger()
 
 # test messages to copy
@@ -510,27 +510,19 @@ def run():
         # the key/int of the last active tab for deciding whether want results to have week based tab display
         active_tab_key = last_active_tab(want_return=True)
 
-        # TODOASAP - FOR IF IS TAB 1 (just 1 date)
-
         # if is a "BETWEEN" date query, then add in new column after the CONCAT part of the SELECT statement to also include the date (for making tabs)
         if active_tab_key != 1:
             post_concat_addition = ", DATE(d.time_stamp) AS theDate "
         else:
             post_concat_addition = " "
 
+        # log last active tab before running function
+        logger.info("last active date tab = {0}".format(active_tab_key))
         # get data for left side
         hour_cups_data_1_adv = get_hour_cups_data(flavour_1_concat, selected_stores_1, selected_date, item_selector_1, final_size_select_1, final_flav_select_1, post_concat_addition)
         # get data for right side
         hour_cups_data_2_adv = get_hour_cups_data(flavour_2_concat, selected_stores_2, selected_date, item_selector_2, final_size_select_2, final_flav_select_2, post_concat_addition)
         st.write("##")
-        # log the results but only a tiny subset of the resulting queries else its far too chunky
-        logger.info("\n\nResult of get_hour_cups_data query (left/item 1)\nFirst : {0}\nLast : {1}".format(hour_cups_data_1_adv[0], hour_cups_data_1_adv[-1]))
-        logger.info("\n\nResult of get_hour_cups_data query (right/item 2)\nFirst : {0}\nLast : {1}".format(hour_cups_data_2_adv[0], hour_cups_data_2_adv[-1])) 
-        # temporary log of just the date part as currently working with it for multiple different types of date query, can be removed when done
-        logger.info("Final var for date query part of get_hour_cups_data query (same both sides/items) - {0}".format(selected_date))
-        
-
-
 
 
         # ---- CREATE AND PRINT ALTAIR CHART OF RESULTS ----
@@ -538,18 +530,23 @@ def run():
         # PORTFOLIO - ADD THIS STUFF
         # TODO - QUICKLY SEE IF CAN FIX THE STRING THING BUT COULD LEAVE FOR NOW TBF
 
-        # REMEMBER ONLY IF THIS NOT 1 ELSE WILL ERROR LIKE FUCK <<<<<<<<<<<<<<<<<<<<< !!!!!!!!!!!!!!!!!!!!!!!!!!!!
         if active_tab_key != 1:
-            pass
-        # for each tab
-        # TECHNICALLY ISNT REMEMBER ITS JUST PLUS 7 FROM THE FIRST DAY <<<<<<<<<<<<<<<<<<<<< !!!!!!!!!!!!!!!!!!!!!!!!!!!! IGNORE THIS FOR NOW THO
+            # get the needed date info (first valid date, date at end of first week, difference in days from start to end)
+            first_date_altair = hour_cups_data_2_adv[0][3]
+            last_date_altair = hour_cups_data_2_adv[-1][3]
+            end_of_first_week_date_altair = first_date_altair + datetime.timedelta(days=7)
+            days_difference = (last_date_altair - first_date_altair).days
+            # floor div 7 to get the amount of weeks but must add one so always have 1 week (unless you render chart based on greater than 0 but meh)
+            weeks_between_dates = (days_difference // 7) + 1 # max 6 weeks btw
 
-        first_date_altair = hour_cups_data_2_adv[0][3]
-        end_of_first_week_date_altair = first_date_altair + datetime.timedelta(days=7)
-        logger.info("TEST 2 - {0}".format(end_of_first_week_date_altair))
-
-
-        # NEED SOME KINDA VAR TO KNOW HOW MANY WEEKS THERE ARE! (could then do tabs dynamically maybe)
+            # log the hour cup results for multi-dates but only a tiny subset of the resulting queries else its far too chunky
+            logger.info("\n\nResult of get_hour_cups_data query (left/item 1)\nFirst : {0}\nLast : {1}".format(hour_cups_data_1_adv[0], hour_cups_data_1_adv[-1]))
+            logger.info("\n\nResult of get_hour_cups_data query (right/item 2)\nFirst : {0}\nLast : {1}".format(hour_cups_data_2_adv[0], hour_cups_data_2_adv[-1])) 
+            # temporary log of just the date part as currently working with it for multiple different types of date query, can be removed when done
+            logger.info("Final var for date query part of get_hour_cups_data query (same both sides/items) - {0}".format(selected_date))
+        else: 
+            weeks_between_dates, first_date_altair, end_of_first_week_date_altair = 0, 0, 0
+            
 
 
         # left query (item 1)
@@ -558,21 +555,60 @@ def run():
         just_names_list_1_all = []
         just_hour_list_1_all = []
         just_cupcount_list_1_all = []
-        # then - for the first set of 7 days, starting from the first given date
-        just_names_list_1_w0 = []
-        just_hour_list_1_w0 = []
-        just_cupcount_list_1_w0 = []        
+        # then - for the possible max weeks, starting from the first given date - since weeks is a fixed numb this just made more sense
+        just_names_list_1_w0, just_names_list_1_w1, just_names_list_1_w2, just_names_list_1_w3, just_names_list_1_w4, just_names_list_1_w5= [], [], [], [], [], []
+        just_hour_list_1_w0, just_hour_list_1_w1, just_hour_list_1_w2, just_hour_list_1_w3, just_hour_list_1_w4, just_hour_list_1_w5 = [], [], [], [], [], []
+        just_cupcount_list_1_w0, just_cupcount_list_1_w1, just_cupcount_list_1_w2, just_cupcount_list_1_w3, just_cupcount_list_1_w4, just_cupcount_list_1_w5 = [], [], [], [], [], []      
 
         for cups_data in hour_cups_data_1_adv:
             # still want to run it once for everything regardless for the 'all dates' tab
             just_cupcount_list_1_all.append(cups_data[0])
             just_hour_list_1_all.append(cups_data[1])
             just_names_list_1_all.append(cups_data[2])
-            # then run for the first week (first 7 days), starting from the first valid date
-            if cups_data[3] >= first_date_altair and cups_data[3] <= end_of_first_week_date_altair:
-                just_cupcount_list_1_w0.append(cups_data[0])
-                just_hour_list_1_w0.append(cups_data[1])
-                just_names_list_1_w0.append(cups_data[2])
+
+            # try except for case with only 1 date (so no [3], aka date data)    
+            try:
+                # dict that sorts which list each loops results will be appended to
+                weeks_dict = {1:(just_cupcount_list_1_w0, just_hour_list_1_w0, just_names_list_1_w0),
+                                2:(just_cupcount_list_1_w1, just_hour_list_1_w1, just_names_list_1_w1),
+                                3:(just_cupcount_list_1_w2, just_hour_list_1_w2, just_names_list_1_w2),
+                                4:(just_cupcount_list_1_w3, just_hour_list_1_w3, just_names_list_1_w3),
+                                5:(just_cupcount_list_1_w4, just_hour_list_1_w4, just_names_list_1_w4),
+                                6:(just_cupcount_list_1_w5, just_hour_list_1_w5, just_names_list_1_w5),
+                                }
+
+                # vars for start and end of week as datetime.date objects
+                week_start_var, week_end_var = first_date_altair, end_of_first_week_date_altair
+
+                # then run for the needed weeks (sets of 7 days), starting from the first valid date
+                for weeknum in range(1, weeks_between_dates + 1):
+                    print("weeknum = ", weeknum)
+                    print("week_start_var = ", week_start_var)
+                    print("week_end_var = ", week_end_var)
+
+                    # set vars for the list that will be appended to based on the weeknum
+                    just_cupcount_list_1_week, just_hour_list_1_week, just_names_list_1_week = weeks_dict[weeknum][0], weeks_dict[weeknum][1], weeks_dict[weeknum][2]
+
+                    # if statement to only grab data for the given week
+                    if cups_data[3] >= week_start_var and cups_data[3] <= week_end_var:
+                        just_cupcount_list_1_week.append(cups_data[0])
+                        just_hour_list_1_week.append(cups_data[1])
+                        just_names_list_1_week.append(cups_data[2])
+                    # if reached a date thats greater than increment week var
+                    # TODOASAP
+                    # this will cut off one piece of data, ig save it outside the loop and just tag it on? <<<<<<<<<<<<<<<<<<<<<<<<< !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+                    if cups_data[3] > end_of_first_week_date_altair:
+                        weeknum += 1
+                        week_start_var = week_start_var + datetime.timedelta(days=8)
+                        week_end_var = week_start_var + datetime.timedelta(days=7)
+            except IndexError:
+                pass
+
+
+        # TODOASAP
+        # THIS FUCKS UP ALL - BUT FOR ALL JUST APPEND ALL THE VALID WEEKS TOGETHER DUH!
+        # SHOULD JUST TAKE ALL OUT AND DO ALL AT THE END WITH THE APPEND OR WHATEVER JOIN DFs
+
 
 
         # right query (item 2)
@@ -590,11 +626,15 @@ def run():
             just_cupcount_list_2_all.append(cups_data[0])
             just_hour_list_2_all.append(cups_data[1])
             just_names_list_2_all.append(cups_data[2])
-            # then run for the first week (first 7 days), starting from the first valid date
-            if cups_data[3] >= first_date_altair and cups_data[3] <= end_of_first_week_date_altair:
-                just_cupcount_list_2_w0.append(cups_data[0])
-                just_hour_list_2_w0.append(cups_data[1])
-                just_names_list_2_w0.append(cups_data[2])
+            # try except for case with only 1 date (so no [3], aka date data)
+            try:
+                # then run for the first week (first 7 days), starting from the first valid date
+                if cups_data[3] >= first_date_altair and cups_data[3] <= end_of_first_week_date_altair:
+                    just_cupcount_list_2_w0.append(cups_data[0])
+                    just_hour_list_2_w0.append(cups_data[1])
+                    just_names_list_2_w0.append(cups_data[2])
+            except IndexError:
+                pass
 
 
         # extended one of the lists with the other for the final dataframe
@@ -638,19 +678,26 @@ def run():
 
 
         # create the tabs for the bar chart based on weeks
-        st.write("##")
-        chartTab1, chartTab2 = st.tabs(["All Dates","Week 1"])
 
-        for i in range(0,2):
-            if i == 0:
-                # randomly changed to camelcase but meh
-                theTab = chartTab1
-                theTitle = "All Dates" # better title names as this is the tab name too? (also subtitles pls) defo include the actual dates DUHHHHH
-                theDataset = (just_names_list_1_all, just_cupcount_list_1_all, just_hour_list_1_all) 
-            else:
-                theTab = chartTab2
-                theTitle = "First Week" # defo include the actual dates DUHHHHHHHHHHHHHHHH
-                theDataset = (just_names_list_1_w0, just_cupcount_list_1_w0, just_hour_list_1_w0)
+        # sumnt sumnt weeks_between_dates if less than or equal to ternary statement else "-"
+        chartTab_weekNames = ["All Dates","Week 1","Week 2","Week 3","Week 4","Week 5","Week 6"]
+
+        st.write("##")
+        chartTab0, chartTab1, chartTab2, chartTab3, chartTab4, chartTab5, chartTab6 = st.tabs(["All Dates","Week 1","Week 2","Week 3","Week 4","Week 5","Week 6"])
+        chartTab_dict = {0:(chartTab0, "All Dates", (just_names_list_1_all, just_cupcount_list_1_all, just_hour_list_1_all)),
+                            1:(chartTab1, "First Week", (just_names_list_1_w0, just_cupcount_list_1_w0, just_hour_list_1_w0)),
+                            2:(chartTab2, "Some Title", (just_names_list_1_w1, just_cupcount_list_1_w1, just_hour_list_1_w1)),
+                            3:(chartTab3, "Some Title", (just_names_list_1_w2, just_cupcount_list_1_w2, just_hour_list_1_w2)),
+                            4:(chartTab4, "Some Title", (just_names_list_1_w3, just_cupcount_list_1_w3, just_hour_list_1_w3)),
+                            5:(chartTab5, "Some Title", (just_names_list_1_w4, just_cupcount_list_1_w4, just_hour_list_1_w4)),
+                            6:(chartTab6, "Some Title", (just_names_list_1_w5, just_cupcount_list_1_w5, just_hour_list_1_w5))
+                        }
+
+        for i in range(0,7):
+
+            # randomly changed to camelcase but meh
+            # better title names as this is the tab name too? (also subtitles pls) defo include the actual dates DUHHHHH
+            theTab, theTitle, theDataset = chartTab_dict[i][0], chartTab_dict[i][1], chartTab_dict[i][2]
             
             with theTab:
                 # grab the data for the chart based on the dates
@@ -674,6 +721,7 @@ def run():
 # - the actual insights stuff! :D
 # - ensure single day is still working fine btw (ideally with no tabs showing) 
 # - then maybe a quick break inbetween for some multithreading? (and things like github/website image thing??)
+# - also check history to find that kid that had the exact same condition as me as can't remember what else he posted
 
 
 
