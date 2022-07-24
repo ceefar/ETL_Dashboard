@@ -411,7 +411,10 @@ def run():
                 else:
                     img_dict[store_name]["col"].image(img_dict[store_name]["off"])
 
-    print_on_off_stores(selected_stores_1, stores_img_dict)
+    try:
+        print_on_off_stores(selected_stores_1, stores_img_dict)
+    except FileNotFoundError:
+        pass
 
     # TODO 
     # ---- VISUAL CLARITY CALENDAR PRINT (TO-DO) ----
