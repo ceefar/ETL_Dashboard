@@ -4,6 +4,7 @@
 import streamlit as st
 import streamlit.components.v1 as stc
 from streamlit.errors import StreamlitAPIException
+from streamlit.scriptrunner import RerunException
 # for date time objects
 import datetime
 # for db integration
@@ -16,6 +17,9 @@ import pandas as pd
 import altair as alt
 # for logging
 import logging
+# for error handling (test)
+import mysql.connector
+
 
 
 # ---- LOGGER ----
@@ -48,17 +52,41 @@ except StreamlitAPIException:
     pass
 
 
+# TODOASAP
+# since queries are being made here, is better to have the connection and query functions here to avoid errors
+# later place all previous db.get_from functions into db integration and for portfolio mode just have code snips or something
+# shit even a module with just strings for it would be fine tbh
+# might leave as is tho tbf am unsure as of rn
+# TODOASAP
+# try except and some way to restart the connection, maybe even gudurhhhhhh - wipe cache, force experimental rerun! (as function) - if error due to connection obvs
+conn = db.init_connection()
+
+@st.experimental_memo(ttl=600)
+def get_from_db(query):
+    """ perform a query that gets from database and returns a value"""
+    with conn.cursor() as cur:
+        cur.execute(query)
+        return cur.fetchall()
+
+def add_to_db(query):
+    """ performs a query with no return needed """
+    with conn.cursor() as cur:
+        cur.execute(query)
+        conn.commit()
+
+
 # ---- FUNCTIONS ----
 
 # base queries used for the initial display of the web app using the default store, and other basic queries like valid dates
-@st.experimental_singleton # is shared across all users connected to the app so can be accessed from multiple threads 
+#@st.experimental_singleton # is shared across all users connected to the app so can be accessed from multiple threads 
+@st.cache
 def base_queries() -> dict: # could place this in db integration in future btw
     """ run and cache these base queries, grabs a chunk of base data from 'Chesterfield' for the initially loaded dashboard """   
     
     # for min/max date ranges
-    base_first_valid_date = db.get_from_db("SELECT current_day FROM BizInsights ORDER BY current_day ASC LIMIT 1")
+    base_first_valid_date = get_from_db("SELECT current_day FROM BizInsights ORDER BY current_day ASC LIMIT 1")
     base_first_valid_date = base_first_valid_date[0][0]
-    base_last_valid_date = db.get_from_db("SELECT current_day FROM BizInsights ORDER BY current_day DESC LIMIT 1")
+    base_last_valid_date = get_from_db("SELECT current_day FROM BizInsights ORDER BY current_day DESC LIMIT 1")
     base_last_valid_date = base_last_valid_date[0][0]
 
     # bundle everything up in a dictionary so it's much easier (and slightly less computationally expensive) to extract - variable names are the keys
@@ -109,7 +137,7 @@ def create_stores_query(user_stores_list:list, need_where:bool = True, for_data:
 def get_main_items_from_stores(user_store:str) -> list:
     """ write me """
     # get only main item name for user select dropdowns
-    get_main_item = db.get_from_db(f"SELECT DISTINCT i.item_name FROM CustomerItems i INNER JOIN CustomerData d on (i.transaction_id = d.transaction_id) WHERE d.store = '{user_store}'")
+    get_main_item = get_from_db(f"SELECT DISTINCT i.item_name FROM CustomerItems i INNER JOIN CustomerData d on (i.transaction_id = d.transaction_id) WHERE d.store = '{user_store}'")
     main_item_list = []
     for item in get_main_item:
         main_item_list.append(item[0])
@@ -117,15 +145,27 @@ def get_main_items_from_stores(user_store:str) -> list:
     return(main_item_list)
 
 
+@st.cache
 def get_main_items_from_stores_updated(user_store:str) -> list:
     """ write me """
-    pass
+    # get only main item name for user select dropdowns using new, updated/improved productpricing table instead of complicated inner join 
+    print(user_store)
+    if "London" in user_store:
+        user_store = user_store.replace(" ","_") 
+    print(user_store)
+    print(f"SELECT DISTINCT item_name FROM ProductPricing WHERE {user_store.lower()} = 1")
+    get_main_items = get_from_db(f"SELECT DISTINCT item_name FROM ProductPricing WHERE {user_store.lower()} = 1")
+    main_items_list = []
+    for item in get_main_items:
+        main_items_list.append(item[0])
+    # return the result
+    return(main_items_list)
 
 
 @st.cache
 def get_flavours_for_item(user_store:str, user_item:str) -> list:
     """ write me """
-    item_flavours = db.get_from_db(f"SELECT DISTINCT i.item_flavour FROM CustomerItems i INNER JOIN CustomerData d on (i.transaction_id = d.transaction_id) WHERE d.store = '{user_store}' AND i.item_name = '{user_item}';")
+    item_flavours = get_from_db(f"SELECT DISTINCT i.item_flavour FROM CustomerItems i INNER JOIN CustomerData d on (i.transaction_id = d.transaction_id) WHERE d.store = '{user_store}' AND i.item_name = '{user_item}';")
     item_flavours_list = []
     # convert the returned tuples into a list (don't print required as streamlit prints (to web app) list comprehensions that aren't assigned to variables)
     dont_print_2 = [item_flavours_list.append(flavour[0]) for flavour in item_flavours]
@@ -213,9 +253,12 @@ def get_hour_cups_data(flavour_x_concat, selected_stores_x, select_date, item_se
                             AND DATE(d.time_stamp) {select_date} AND i.item_name = '{item_selector_x}' AND {final_size_select_x}\
                             AND {final_flav_select_x} GROUP BY d.time_stamp, item"
     logger.info("Final hour x cups Altair chart query (get_hour_cups_data) - {0}".format(cups_by_hour_query)) 
-    hour_cups_data = db.get_from_db(cups_by_hour_query)  
+    hour_cups_data = get_from_db(cups_by_hour_query)  
 
-    # TODOASAP - TO CACHE THIS (& HASH IT FOR RETURN) IT SEEMS LIKE YOU NEED TO CHANGE THE DATE TO A STRING PROBABLY IDK THO
+    # TODOASAP - TO CACHE THIS (& HASH IT FOR RETURN) IT SEEMS LIKE YOU NEED TO CHANGE THE DATE TO A STRING PROBABLY IDK THO 
+    # TODOASAP - BACK TO CACHED AND TEST ON 3.9 - 3.7 AS BELOW 
+    # TODO - note could also be a problem with the python version, try 3.9 - 3.7 first to see ig? 
+    # NOTE - COULD LITERALLY CACHE THESE MYSELF WITH SESSION STATE JUST USING THE PARAMETER NAMES THEN IF IT FINDS THOSE PARAMETER NAMES RETURN ELSE RUN QUERY 
 
     return(hour_cups_data) 
 
@@ -358,10 +401,10 @@ def run():
             # TODO 
             # put query in db_interaction and rest in own function
             stores_query = create_stores_query(selected_stores_1)
-            stores_avail_weeks = sorted(db.get_from_db(f"SELECT DISTINCT WEEKOFYEAR(current_day) FROM BizInsights {stores_query}"))
+            stores_avail_weeks = sorted(get_from_db(f"SELECT DISTINCT WEEKOFYEAR(current_day) FROM BizInsights {stores_query}"))
             first_day_of_week_list = [] # for zipping with stores_available_weeks (must ensure order is correct)
             for weeknum in stores_avail_weeks:
-                first_day_of_week = db.get_from_db(f"SELECT '2022-01-01'+INTERVAL ({weeknum[0]}-WEEK('2022-01-01', 1))*7 - WEEKDAY('2022-01-01') DAY")
+                first_day_of_week = get_from_db(f"SELECT '2022-01-01'+INTERVAL ({weeknum[0]}-WEEK('2022-01-01', 1))*7 - WEEKDAY('2022-01-01') DAY")
                 first_day_of_week_list.append(first_day_of_week[0][0])
             # TODO - REFORMAT THE DATE AS ITS YUCKY LIKE THIS 
             stores_available_weeks_formatted = []
@@ -399,7 +442,7 @@ def run():
         # option 3 is week number with week beginning so we need the date at week end too
         if st.session_state["last_active_date_tab"] == 3:
             to_make_date = date_dict[use_date][10:]
-            end_of_week = db.get_from_db(f"SELECT DATE_ADD('{to_make_date}', INTERVAL 6 DAY);")
+            end_of_week = get_from_db(f"SELECT DATE_ADD('{to_make_date}', INTERVAL 6 DAY);")
             return((to_make_date, end_of_week[0][0]))
 
         # TODO 
@@ -474,13 +517,16 @@ def run():
 
         with item1Col:
             store_selector_1 = st.selectbox(label=f"Which Store Do You Want To Choose An Item From?", key="store_sel_1", options=selected_stores_1, index=0, help="For more stores update the above multiselect")
-            final_main_item_list = get_main_items_from_stores(store_selector_1)
+            #final_main_item_list = get_main_items_from_stores(store_selector_1)
+            final_main_item_list = get_main_items_from_stores_updated(store_selector_1)
+            
             item_selector_1 = st.selectbox(label=f"Choose An Item From Store {store_selector_1}", key="item_selector_1", options=final_main_item_list, index=0) 
             
         with item2Col:
             store_select_2_index = 1 if len(selected_stores_1) > 1 else 0
             store_selector_2 = st.selectbox(label=f"Which Store Do You Want To Choose An Item From?", key="store_sel_2", options=selected_stores_1, index=store_select_2_index, help="For more stores update the above multiselect")
-            final_main_item_list = get_main_items_from_stores(store_selector_2)
+            #final_main_item_list = get_main_items_from_stores(store_selector_2)
+            final_main_item_list = get_main_items_from_stores_updated(store_selector_2)
             item_selector_2 = st.selectbox(label=f"Choose An Item From Store {store_selector_2}", key="item_selector_2", options=final_main_item_list, index=1)
             
         # set the user results to vars used in the queries
@@ -523,6 +569,16 @@ def run():
         flavour_1_concat = decide_to_include_flavour(flavour_1_is_null)
         flavour_2_concat = decide_to_include_flavour(flavour_2_is_null)
 
+
+        # TODOASAP 
+        # HELLA TEMP AS THIS SHOULD NEVER HAVE CHANGED ANYWAY BUT MEH - DO NEED TO FIND / COVER THE ROOT CAUSE THO
+        if st.session_state["last_active_date_tab"] == 4:
+            print(st.session_state["last_active_date_tab"])
+            last_active_tab(2)
+            selected_date = set_selected_date_from_last_active_tab(use_vs_selected_date_dict)
+            selected_date = make_date_query(selected_date)
+
+
         # the key/int of the last active tab for deciding whether want results to have week based tab display
         active_tab_key = last_active_tab(want_return=True)
 
@@ -548,10 +604,22 @@ def run():
 
         if active_tab_key != 1:
             # get the needed date info (first valid date, date at end of first week, difference in days from start to end)
+
             true_start_date_str = (selected_date[10:20])
             true_end_date_str = (selected_date[27:37])
+
+            # quick debugging
+            print("selected_date", selected_date)
+            print("true_start_date_str", true_start_date_str)
+            print("true_end_date_str", true_end_date_str)
+            print(st.session_state["last_active_date_tab"])
+
             first_date_altair = datetime.datetime.strptime(true_start_date_str, '%Y-%m-%d')
             last_date_altair = datetime.datetime.strptime(true_end_date_str, '%Y-%m-%d')
+
+            print("first_date_altair", first_date_altair)
+            print("last_date_altair", last_date_altair)
+
             end_of_first_week_date_altair = first_date_altair + datetime.timedelta(days=7)
             end_of_first_week_date_altair = end_of_first_week_date_altair.date()
             first_date_altair = first_date_altair.date()
@@ -566,8 +634,13 @@ def run():
             weeks_between_dates, first_date_altair, end_of_first_week_date_altair = 0, 0, 0
             
         # log the hour cup results for multi-dates but only a tiny subset of the resulting queries else its far too chunky
-        logger.info("\n\nResult of get_hour_cups_data query (left/item 1)\nFirst : {0}\nLast : {1}".format(hour_cups_data_1_adv[0], hour_cups_data_1_adv[-1]))
-        #logger.info("\n\nResult of get_hour_cups_data query (right/item 2)\nFirst : {0}\nLast : {1}".format(hour_cups_data_2_adv[0], hour_cups_data_2_adv[-1])) 
+        try:
+            # but dont error the entire program just to log outputs when there is no data
+            logger.info("\n\nResult of get_hour_cups_data query (left/item 1)\nFirst : {0}\nLast : {1}".format(hour_cups_data_1_adv[0], hour_cups_data_1_adv[-1]))
+            logger.info("\n\nResult of get_hour_cups_data query (right/item 2)\nFirst : {0}\nLast : {1}".format(hour_cups_data_2_adv[0], hour_cups_data_2_adv[-1])) 
+        except IndexError:
+            pass
+        
 
         # left query (item 1)
         # empty lists used for transforming db data for df, 'all' covers all dates, the rest is week by week
@@ -754,20 +827,18 @@ def run():
 # OK SO NEXT/RN
 
 # rnrn
-# - this new table function update thing
+# - the new table functions update things - cache them btw?
 # - item 2
 # - extend function
 # - date ranges (just 1 more or maybe even just skip for now tbh)
 # - actual fucking insights
+
 
 # - dynamically doing all of the weeks
 #   - extend function, wtf random markdown number, comments, right side (item 2), single week, multiple weeks
 #   - ideally starting on a monday or sunday if is easy enough (should be tbf but should skip this part either way to do insights asap)
 # - the actual insights stuff! :D
 # - logging, unittest, ci/cd basics
-# - update functions for new product pricing thing (particularly get flavours n shit)
-#   - so much this because havent checked run times on live db
-#   - 100% have the initial data preloaded (to cache?)
 # - try out multithreading with some simple testing
 #   - create a new page for it duh
 
@@ -775,12 +846,16 @@ def run():
 # - move functions, ig and comment and clean up a bit quickly
 # - ensure single day is still working fine btw (ideally with no tabs showing) 
 # - obvs 100 needs portfolio mode before done, oh and advanced mode too maybe but idk
+    # - at this point also... due to the db.get_from function error 
+        # - move everything that was a db.get_from, from here to db_integration
+        # - then use code snippets in a different new module for portfolio mode!
 # - the calendar print
     # - also tho owt else could do with artist?
 # - make insights the homepages, and have dash as sumnt else, means insights should set to wide (and rerun to ensure is wide thing btw)
 #   - also ig can jazz it up a teeny bit (gifs n shit)
 # - also things like github/website image thing btw
 # - also check history to find that kid that had the exact same condition as me as can't remember what else he posted
+
 
 # NO CAP, ONCE THIS INSIGHTS IS DONE MOVE ON TO OTHER (QUICKER PROJECTS LIKE 2 IDEAS AM JUST GUNA COPY AND CANCER TING)
 # - one was the map idea (best suited area for you, could add in whatever user selects I want tbh but house price and like council tax, average shop sumnt is good start)
@@ -792,4 +867,17 @@ def run():
 if __name__ == "__main__":
     # TODOASAP - force experiemental rerun one time initially (use a singleton function ig?) so it is forced to wide mode
     # TODOASAP - also add a info box for this like "better in/designed for wide mode - if this has run in box mode use settings in top right..."
-    run()
+    
+    # TODOASAP - probably need on error, clear cache btw!
+    try:
+        run()
+    except mysql.connector.errors.OperationalError as operr:
+        # new test - if errors due to connection, wipe the entire cache (which seems to be the issue anyway, the cached connection), then rerun everything
+        print("\n\nERROR HANDLING\n\n")
+        print(operr)
+        st.experimental_memo.clear()
+        st.experimental_singleton.clear()
+        st.error("Fatal Error - Please Refresh")
+        raise RerunException(run)
+
+        

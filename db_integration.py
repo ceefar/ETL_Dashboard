@@ -18,16 +18,13 @@ conn = init_connection()
 
 # ---- perform queries ----
 # both uses st.experimental_memo to only rerun when the query changes or after 10 min
-
-#TODOASAP - ig try except here for operational error that reruns init connection (but a version that isn't a singleton?)
-
 @st.experimental_memo(ttl=600)
 def get_from_db(query):
     """ perform a query that gets from database and returns a value"""
     with conn.cursor() as cur:
         cur.execute(query)
         return cur.fetchall()
-        
+
 
 @st.experimental_memo(ttl=600)
 def add_to_db(query):
@@ -146,13 +143,5 @@ def update_productpricing_for_store_basic_inventory_flavoured():
 
 
 # ---- end bobbys ----
-
-
-# ---- driver - if needed ----
-if __name__ == "__main__":
-    update_productpricing_for_store_basic_inventory_flavoured()
-
-
-
 
 
