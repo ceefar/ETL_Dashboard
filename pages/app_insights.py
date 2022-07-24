@@ -394,11 +394,11 @@ def run():
     # ---- VISUAL CLARITY STORE PRINT ----
 
     # dictionary to hold store related image paths, and their column vars for setting iteratively
-    stores_img_dict = {"Chesterfield":{"col":storeImg1, "on":"imgs\coffee-shop-light-chesterfield.png", "off":"imgs\coffee-shop-light-chesterfield-saturated.png"},
-                        "Uppingham":{"col":storeImg2, "on":"imgs\coffee-shop-light-uppingham.png", "off":"imgs\coffee-shop-light-uppingham-saturated.png"},
-                        "Longridge":{"col":storeImg3, "on":"imgs\coffee-shop-light-longridge.png", "off":"imgs\coffee-shop-light-longridge-saturated.png"},
-                        "London Camden":{"col":storeImg4, "on":"imgs\coffee-shop-light-london-camden.png", "off":"imgs\coffee-shop-light-london-camden-saturated.png"},
-                        "London Soho":{"col":storeImg5, "on":"imgs\coffee-shop-light-london-soho.png", "off":"imgs\coffee-shop-light-london-soho-saturated.png"}
+    stores_img_dict = {"Chesterfield":{"col":storeImg1, "on":"imgs/coffee-shop-light-chesterfield.png", "off":"imgs/coffee-shop-light-chesterfield-saturated.png"},
+                        "Uppingham":{"col":storeImg2, "on":"imgs/coffee-shop-light-uppingham.png", "off":"imgs/coffee-shop-light-uppingham-saturated.png"},
+                        "Longridge":{"col":storeImg3, "on":"imgs/coffee-shop-light-longridge.png", "off":"imgs/coffee-shop-light-longridge-saturated.png"},
+                        "London Camden":{"col":storeImg4, "on":"imgs/coffee-shop-light-london-camden.png", "off":"imgs/coffee-shop-light-london-camden-saturated.png"},
+                        "London Soho":{"col":storeImg5, "on":"imgs/coffee-shop-light-london-soho.png", "off":"imgs/coffee-shop-light-london-soho-saturated.png"}
                         }
 
     # print function for images
@@ -411,10 +411,13 @@ def run():
                 else:
                     img_dict[store_name]["col"].image(img_dict[store_name]["off"])
 
+
+    # handle error in case the images can't be found, but this generally only happens when using backslash instead of forward slash so fixing that too
     try:
         print_on_off_stores(selected_stores_1, stores_img_dict)
     except FileNotFoundError:
         pass
+
 
     # TODO 
     # ---- VISUAL CLARITY CALENDAR PRINT (TO-DO) ----
