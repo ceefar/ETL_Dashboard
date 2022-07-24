@@ -48,6 +48,27 @@ except StreamlitAPIException:
     pass
 
 
+# TODOASAP
+# since queries are being made here, is better to have the connection and query functions here to avoid errors
+# later place all previous db.get_from functions into db integration and for portfolio mode just have code snips or something
+# shit even a module with just strings for it would be fine tbh
+# might leave as is tho tbf am unsure as of rn
+conn = db.init_connection()
+
+@st.experimental_memo(ttl=600)
+def get_from_db(query):
+    """ perform a query that gets from database and returns a value"""
+    with conn.cursor() as cur:
+        cur.execute(query)
+        return cur.fetchall()
+
+def add_to_db(query):
+    """ performs a query with no return needed """
+    with conn.cursor() as cur:
+        cur.execute(query)
+        conn.commit()
+
+
 # ---- FUNCTIONS ----
 
 # base queries used for the initial display of the web app using the default store, and other basic queries like valid dates
@@ -56,9 +77,9 @@ def base_queries() -> dict: # could place this in db integration in future btw
     """ run and cache these base queries, grabs a chunk of base data from 'Chesterfield' for the initially loaded dashboard """   
     
     # for min/max date ranges
-    base_first_valid_date = db.get_from_db("SELECT current_day FROM BizInsights ORDER BY current_day ASC LIMIT 1")
+    base_first_valid_date = get_from_db("SELECT current_day FROM BizInsights ORDER BY current_day ASC LIMIT 1")
     base_first_valid_date = base_first_valid_date[0][0]
-    base_last_valid_date = db.get_from_db("SELECT current_day FROM BizInsights ORDER BY current_day DESC LIMIT 1")
+    base_last_valid_date = get_from_db("SELECT current_day FROM BizInsights ORDER BY current_day DESC LIMIT 1")
     base_last_valid_date = base_last_valid_date[0][0]
 
     # bundle everything up in a dictionary so it's much easier (and slightly less computationally expensive) to extract - variable names are the keys
@@ -109,7 +130,7 @@ def create_stores_query(user_stores_list:list, need_where:bool = True, for_data:
 def get_main_items_from_stores(user_store:str) -> list:
     """ write me """
     # get only main item name for user select dropdowns
-    get_main_item = db.get_from_db(f"SELECT DISTINCT i.item_name FROM CustomerItems i INNER JOIN CustomerData d on (i.transaction_id = d.transaction_id) WHERE d.store = '{user_store}'")
+    get_main_item = get_from_db(f"SELECT DISTINCT i.item_name FROM CustomerItems i INNER JOIN CustomerData d on (i.transaction_id = d.transaction_id) WHERE d.store = '{user_store}'")
     main_item_list = []
     for item in get_main_item:
         main_item_list.append(item[0])
@@ -119,13 +140,14 @@ def get_main_items_from_stores(user_store:str) -> list:
 
 def get_main_items_from_stores_updated(user_store:str) -> list:
     """ write me """
+    # TODOASAP - legit do once db update is done
     pass
 
 
 @st.cache
 def get_flavours_for_item(user_store:str, user_item:str) -> list:
     """ write me """
-    item_flavours = db.get_from_db(f"SELECT DISTINCT i.item_flavour FROM CustomerItems i INNER JOIN CustomerData d on (i.transaction_id = d.transaction_id) WHERE d.store = '{user_store}' AND i.item_name = '{user_item}';")
+    item_flavours = get_from_db(f"SELECT DISTINCT i.item_flavour FROM CustomerItems i INNER JOIN CustomerData d on (i.transaction_id = d.transaction_id) WHERE d.store = '{user_store}' AND i.item_name = '{user_item}';")
     item_flavours_list = []
     # convert the returned tuples into a list (don't print required as streamlit prints (to web app) list comprehensions that aren't assigned to variables)
     dont_print_2 = [item_flavours_list.append(flavour[0]) for flavour in item_flavours]
@@ -213,7 +235,7 @@ def get_hour_cups_data(flavour_x_concat, selected_stores_x, select_date, item_se
                             AND DATE(d.time_stamp) {select_date} AND i.item_name = '{item_selector_x}' AND {final_size_select_x}\
                             AND {final_flav_select_x} GROUP BY d.time_stamp, item"
     logger.info("Final hour x cups Altair chart query (get_hour_cups_data) - {0}".format(cups_by_hour_query)) 
-    hour_cups_data = db.get_from_db(cups_by_hour_query)  
+    hour_cups_data = get_from_db(cups_by_hour_query)  
 
     # TODOASAP - TO CACHE THIS (& HASH IT FOR RETURN) IT SEEMS LIKE YOU NEED TO CHANGE THE DATE TO A STRING PROBABLY IDK THO
     # TODO - note could also be a problem with the python version, try 3.9 - 3.7 first to see ig?
@@ -360,10 +382,10 @@ def run():
             # TODO 
             # put query in db_interaction and rest in own function
             stores_query = create_stores_query(selected_stores_1)
-            stores_avail_weeks = sorted(db.get_from_db(f"SELECT DISTINCT WEEKOFYEAR(current_day) FROM BizInsights {stores_query}"))
+            stores_avail_weeks = sorted(get_from_db(f"SELECT DISTINCT WEEKOFYEAR(current_day) FROM BizInsights {stores_query}"))
             first_day_of_week_list = [] # for zipping with stores_available_weeks (must ensure order is correct)
             for weeknum in stores_avail_weeks:
-                first_day_of_week = db.get_from_db(f"SELECT '2022-01-01'+INTERVAL ({weeknum[0]}-WEEK('2022-01-01', 1))*7 - WEEKDAY('2022-01-01') DAY")
+                first_day_of_week = get_from_db(f"SELECT '2022-01-01'+INTERVAL ({weeknum[0]}-WEEK('2022-01-01', 1))*7 - WEEKDAY('2022-01-01') DAY")
                 first_day_of_week_list.append(first_day_of_week[0][0])
             # TODO - REFORMAT THE DATE AS ITS YUCKY LIKE THIS 
             stores_available_weeks_formatted = []
@@ -401,7 +423,7 @@ def run():
         # option 3 is week number with week beginning so we need the date at week end too
         if st.session_state["last_active_date_tab"] == 3:
             to_make_date = date_dict[use_date][10:]
-            end_of_week = db.get_from_db(f"SELECT DATE_ADD('{to_make_date}', INTERVAL 6 DAY);")
+            end_of_week = get_from_db(f"SELECT DATE_ADD('{to_make_date}', INTERVAL 6 DAY);")
             return((to_make_date, end_of_week[0][0]))
 
         # TODO 
@@ -756,6 +778,9 @@ def run():
 # OK SO NEXT/RN
 
 # rnrn
+# - i think this error is due to calling just the db.get_from function which then doesn't have access to the connection as it hasn't run through it yet
+    # - can either have a connection and get in here and not use db. or move everything that is a db. from here to db_integration
+    # - i think move a connection to here first as im unsure if the second option really is the problem
 # - this new table function update thing
 # - item 2
 # - extend function
