@@ -1,0 +1,48 @@
+THINGS TO ADD
+*************
+logging
+ci/cd 
+unittesting
+base data needs to just be available, like stored in an array or dict or whatever (same format it would get back from a query)
+test multithreading and multiprocessing to implement in this but do in an actually test file as yeah is more complicated than just add and done
+    - see bookmarks for links
+
+
+PAGES
+*************
+store vs store
+store insights (more about hours of the day than anything else)
+product insights (more about products duh, hours of the day too tho obvs)
+days of the week / week breakdown
+compare between dates
+dashboard home
+
+
+ACTUAL TODO
+*************
+insights stuff 
+    - actual new insights deep dive
+    - portfolio mode
+    - artist / calendar print\
+    - finish dates tabs
+    - get main items from store new table (with stores) asap as this is the most computationally expensive query so far it seems
+    - tidy up and comment
+
+# THEN (tbf before other project stuff)
+# IMG OF MUG ON WEBSITE AND CONFIRM ITS CLEAN - FFS ENSURE HAVE A "DESKTOP ONLY" THING IF UR ON MOBILE OR TABLET
+    - i.e. my end bit could use a tidy up too ig
+    - as could sign me up
+    - lmao my personal email address ting and on phone and ipad too duh!
+
+# DO THE GIT TIDY WITH READMES AND NGL RECORD SHORT VIDS OF WAGWAN FOR THE README (as link) TOO, HAVE IMGS ETC, AND JUST HAVE THAT BEING CLEAN!
+# DEFO NEED BEFORE INTERVIEWS MAN!
+
+# NO CAP, ONCE THIS INSIGHTS IS DONE MOVE ON TO OTHER (QUICKER PROJECTS LIKE 2 IDEAS AM JUST GUNA COPY AND CANCER TING)
+# - one was the map idea (best suited area for you, could add in whatever user selects I want tbh but house price and like council tax, average shop sumnt is good start)
+# - other was skal.es week time thing
+# - obvs my other 2 projects but really just the new atmoic which is 80HD, focus on just one thing ffs get that done and live with user login and db stuff then and only then move on
+
+dashboard stuff
+    - hate to say it but probably best to rewrite dashboard page now as is just a mess & nothing is working lol
+    - plan it, keep it simple, and it will be easy tbf
+    - and dont forget to add in portfolio mode stuff 

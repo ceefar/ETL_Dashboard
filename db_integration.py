@@ -1,37 +1,37 @@
 # ---- imports ----
  
-# for db
-import pymysql
-import os
-from dotenv import load_dotenv
+# for db connection
+import mysql.connector
+# for secrets.toml, singleton, & memo
+import streamlit as st
 
-# load environment variables from .env file
-load_dotenv()
-host = os.environ.get("mysql_host")
-user = os.environ.get("mysql_user")
-password = os.environ.get("mysql_pass")
-database = os.environ.get("mysql_db")
 
-# establish a database connection
-connection = pymysql.connect(
-    host = host,
-    user = user,
-    password = password,
-    database = database
-)
+# ---- initialize connection ----
+# uses st.experimental_singleton to only run once.
 
-def add_to_db(command):
-    """ gets stuff from a db """
-    cursor = connection.cursor()
-    cursor.execute(f"{command}") 
-    connection.commit()
+@st.experimental_singleton
+def init_connection():
+    return mysql.connector.connect(**st.secrets["mysql"])
 
-def get_from_db(command):
-    """ gets stuff from a db, returns the result """
-    cursor = connection.cursor()
-    cursor.execute(f"{command}") 
-    myresult = cursor.fetchall()
-    connection.commit()
-    return(myresult)
+conn = init_connection()
+
+
+# ---- perform queries ----
+# both uses st.experimental_memo to only rerun when the query changes or after 10 min
+
+@st.experimental_memo(ttl=600)
+def get_from_db(query):
+    """ perform a query that gets from database and returns a value"""
+    with conn.cursor() as cur:
+        cur.execute(query)
+        return cur.fetchall()
+
+
+@st.experimental_memo(ttl=600)
+def add_to_db(query):
+    """ performs a query with no return needed """
+    with conn.cursor() as cur:
+        cur.execute(query)
+
 
 # ---- end setup ----
