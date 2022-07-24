@@ -3,7 +3,7 @@
 # for web app 
 import streamlit as st
 import streamlit.components.v1 as stc
-from streamlit.errors import StreamlitAPIException
+from streamlit.errors import StreamlitAPIException, DuplicateWidgetID
 #from streamlit.scriptrunner import RerunException
 #from streamlit import legacy_caching
 # for date time objects
@@ -25,21 +25,15 @@ import mysql.connector
 
 # ---- LOGGER ----
 
-# create and configure insights page logger, all log levels, custom log message, overwrites file per run instead of appending
+# create and configure insights page logger, all log levels, custom log message, overwrites file per run instead of appending [.debug / .info / .warning / .error / .critical ]
 LOG_FORMAT = "%(levelname)s %(asctime)s - %(message)s"
 logging.basicConfig(filename = "C:/Users/robfa/Downloads/ETL_Dashboard/applogs/insights.log", level = logging.DEBUG, format = LOG_FORMAT, filemode = "w")
 logger = logging.getLogger()
 
-# test messages to copy
-#logger.debug("Harmless debug message") # 10
-#logger.info("Some useful info") # 20
-#logger.warning("I'm sorry I can't do that") # 30
-#logger.error("This would cause an error") # 40
-#logger.critical("The program became sentient, run") # 50
-
 
 # ---- SETUP WEB APP ----
 
+# TODOASAP - also add a info box for this like "better in/designed for wide mode - if this has run in box mode use settings in top right..."
 def on_load():
     """ sets the layout default to wide, set page config needs to be the first streamlit action that is run for it to work """
     # potential bug that it sometimes doesn't do this first time round but does when you click a page again (consider re-run to force?)
@@ -140,7 +134,6 @@ def get_main_items_from_stores(user_store:str) -> list:
     return(main_item_list)
 
 
-
 def get_main_items_from_stores_updated(user_store:str) -> list:
     """ get only main item name for user select dropdowns using new, updated/improved productpricing table instead of complicated inner join  """
     # if london update the name so it matches the col
@@ -167,7 +160,6 @@ def get_flavours_for_item_updated(user_store:str, user_item:str) -> list:
     return(item_store_flavours_list)
 
 
-
 def get_flavours_for_item(user_store:str, user_item:str) -> list:
     """ write me """
     item_flavours = get_from_db(f"SELECT DISTINCT i.item_flavour FROM CustomerItems i INNER JOIN CustomerData d on (i.transaction_id = d.transaction_id) WHERE d.store = '{user_store}' AND i.item_name = '{user_item}';")
@@ -179,7 +171,6 @@ def get_flavours_for_item(user_store:str, user_item:str) -> list:
 
 def create_flavour_query(flavour_x_is_null:bool, multi_flav_selector_x:list, final_item_flavours_list_x:list) -> str:
     """ write me """
-
     # first split flavour selector dynamically if multi select, requires bracket notation for AND / OR statement
     # only required for flavour, as size can only be regular or large
 
@@ -236,7 +227,7 @@ def create_size_query(multi_size_selector_x:list) -> str:
     return(final_size_select)
 
 
-# TODOASAP 
+# TODOASAP - BACK TO CACHED AND TEST ON 3.9 - 3.7 
 #@st.cache()
 def get_hour_cups_data(flavour_x_concat, selected_stores_x, select_date, item_selector_x, final_size_select_x, final_flav_select_x, after_concat:str):
     """ groups together all of the complex queries in to the final query and returns the data - is cached """
@@ -261,12 +252,7 @@ def get_hour_cups_data(flavour_x_concat, selected_stores_x, select_date, item_se
                             AND {final_flav_select_x} GROUP BY d.time_stamp, item"
     logger.info("Final hour x cups Altair chart query (get_hour_cups_data) - {0}".format(cups_by_hour_query)) 
     hour_cups_data = get_from_db(cups_by_hour_query)  
-
-    # TODOASAP - TO CACHE THIS (& HASH IT FOR RETURN) IT SEEMS LIKE YOU NEED TO CHANGE THE DATE TO A STRING PROBABLY IDK THO 
-    # TODOASAP - BACK TO CACHED AND TEST ON 3.9 - 3.7 AS BELOW 
-    # TODO - note could also be a problem with the python version, try 3.9 - 3.7 first to see ig? 
-    # NOTE - COULD LITERALLY CACHE THESE MYSELF WITH SESSION STATE JUST USING THE PARAMETER NAMES THEN IF IT FINDS THOSE PARAMETER NAMES RETURN ELSE RUN QUERY 
-
+    
     return(hour_cups_data) 
 
 
@@ -316,9 +302,9 @@ def run():
     first_valid_date = datetime.datetime.strptime(first_valid_date, '%Y-%m-%d').date()
     last_valid_date = datetime.datetime.strptime(last_valid_date, '%Y-%m-%d').date()
 
-    # initialise session state var if there is none, default to 1 (this is the initial tab number (key) for single date select)
+    # initialise session state var if there is none, default to 2 (this is the initial tab number (key) for between 2 dates select - is more stable)
     if "last_active_date_tab" not in st.session_state:
-        st.session_state["last_active_date_tab"] = 1  
+        st.session_state["last_active_date_tab"] = 2 
     # empty var for selected stores last active tab functionality
     selected_date = ""
 
@@ -381,7 +367,7 @@ def run():
         selected_stores_1 = st.multiselect("Choose The Store/s", options=base_stores_list, default=["Chesterfield"])
         
         # ---- DATE SELECT ----
-        dateTab1, dateTab2, dateTab3, dateTab4, dateTab5, dateTabs6 = st.tabs(["Single Day", "Between 2 Dates", "Single Week", "Mulitple Weeks", "Full Month", "All Time"]) # multiple weeks is a maybe rn btw
+        dateTab2, dateTab1, dateTab3, dateTab4, dateTab5, dateTabs6 = st.tabs(["Between 2 Dates", "Single Day", "Single Week", "Mulitple Weeks", "Full Month", "All Time"]) # multiple weeks is a maybe rn btw
         
         def force_date_run_btn(run_button_key:str):
             """ write me """
@@ -815,6 +801,11 @@ def run():
         # unpack the results
         just_cupcount_list_1_all, just_hour_list_1_all, just_names_list_1_all = result_all_1[0], result_all_1[1], result_all_1[2]
 
+        # make copies for item 1s all lists before extending for insights dataframes
+        just_cupcount_1_for_df = just_cupcount_list_1_all.copy()
+        just_hours_1_for_df = just_hour_list_1_all.copy()
+        just_names_1_for_df = just_names_list_1_all.copy()
+
         # ---- FOR ITEM 2 / RIGHT SIDE ---- 
         result_all_2 = extend_all_lists(just_cupcount_list_2_all, just_hour_list_2_all, just_names_list_2_all, 
                         just_cupcount_list_2_w0,just_cupcount_list_2_w1,just_cupcount_list_2_w2,just_cupcount_list_2_w3,just_cupcount_list_2_w4,just_cupcount_list_2_w5,
@@ -823,7 +814,12 @@ def run():
         # unpack the results
         just_cupcount_list_2_all, just_hour_list_2_all, just_names_list_2_all = result_all_2[0], result_all_2[1], result_all_2[2]
 
+        # make copies for item 2s all lists before extending for insights dataframes
+        just_cupcount_2_for_df = just_cupcount_list_2_all.copy()
+        just_hours_2_for_df = just_hour_list_2_all.copy()
+        just_names_2_for_df = just_names_list_2_all.copy()        
 
+        # organise for passing to the extend function
         all_list_1 = [just_names_list_1_all, just_cupcount_list_1_all, just_hour_list_1_all]
         all_list_2 = [just_names_list_2_all, just_cupcount_list_2_all, just_hour_list_2_all]
         w0_list_1 = [just_names_list_1_w0, just_cupcount_list_1_w0, just_hour_list_1_w0]
@@ -838,6 +834,7 @@ def run():
                 list_1.extend(list_2)
                 the_final_list.append(list_1)
             return(the_final_list)
+
 
         # call the function
         final_all_list_1 = extend_list_1_with_list_2(all_list_1, all_list_2)
@@ -872,8 +869,7 @@ def run():
                 text=alt.Text('sum(CupsSold):Q', format='.0f')
             )
 
-            return((bar_chart,chart_text))
-
+            return((bar_chart, chart_text))
 
 
         # TODOASAP - ADD SUBTITLE N SHIT
@@ -917,13 +913,141 @@ def run():
                 st.markdown(f"#### {theTitle}")
                 st.altair_chart(barchart + barchart_text, use_container_width=True)
 
-
-
-
         # TODOASAP
         # HAVE REMOVED THE ONLY ONE DATE TRY EXCEPT INDEXERROR FOR NOW - might not need anymore btw but what if not data for a single day (find out duh)
         # JUST GENERALLY BE SURE TO COVER WITH TRY EXCEPTS WHERE NECESSARY WHEN THERE IS NO DATA + WHATEVER ELSE
 
+        # ---- END ALTAIR CHART - PHEW ----
+
+
+
+
+        # TODOASAP - SECTION INTO FUNCTIONS?!
+
+        # ---- START INSIGHTS ----
+        # gain insights by running some indepth calculations
+        
+        # recreate the dataframe that we used in the 'all' dataset - but only for item, it is not the extended version (as insights duh, need em seperate)
+        df_sawce_1 = pd.DataFrame({
+        "DrinkName": just_names_1_for_df,
+        "CupsSold": just_cupcount_1_for_df,
+        "HourOfDay": just_hours_1_for_df
+        })
+
+        # recreate the dataframe that we used in the 'all' dataset
+        df_sawce_2 = pd.DataFrame({
+        "DrinkName": just_names_2_for_df,
+        "CupsSold": just_cupcount_2_for_df,
+        "HourOfDay": just_hours_2_for_df
+        })
+
+
+        # get unique values in HourOfDay column to loop (returns array object so convert to list), then sort/order it
+        uniqueCols = sorted(list(df_sawce_1['HourOfDay'].unique()))
+
+        # get sum of cupsSold column based on condition (HourOfDay == x), added to dictionary with key = hour, value = sum of cups sold for hour
+        results_dict = {}
+        for value in uniqueCols:
+            cupForHour = df_sawce_1.loc[df_sawce_1['HourOfDay'] == value, 'CupsSold'].sum()
+            results_dict[value] = cupForHour
+
+        # don't let something like a pesky zero division ruin everything (in case of no data)
+        try:
+            average_hourcups = sum(results_dict.values()) / len(results_dict.values())
+        except ZeroDivisionError:
+            average_hourcups = 0
+
+        # create a new dictionary from hour/cups dictionary but sorted
+        sort_by_value = dict(sorted(results_dict.items(), key=lambda x: x[1]))   
+        # create a list of formatted strings with times and cups sold including am or pm based on the time
+        sort_by_value_formatted_list = list(map(lambda x: (f"{x[0]}pm [{x[1]} cups sold]") if x[0] > 11 else (f"{x[0]}am [{x[1]} cups sold]"), sort_by_value.items()))
+
+        try:
+            # list the keys (times, ordered) only, slice the first and last elements in the array (list) [start:stop:step]
+            worst_time, best_time = list(sort_by_value.keys())[::len(sort_by_value.keys())-1]
+            worst_performer, best_performer = sort_by_value_formatted_list[::len(sort_by_value_formatted_list)-1]
+        except ValueError:
+            worst_time, best_time, worst_performer, best_performer = 0,0,0,0
+
+        # hour and amount of cups sold, above/under the average sales per hour
+        above_avg_hourcups = {}
+        under_avg_hourcups = {}
+        for hour, cups in results_dict.items():
+                if cups >= average_hourcups:
+                    above_avg_hourcups[hour] = cups
+                else:
+                    under_avg_hourcups[hour] = cups
+
+
+
+        # TO ADD HERE
+        #   - granualar into the actual products
+        #   - how much it overperformed by
+        #   - specifics if multiple sizes of same item 100!
+        #   - specifics if multiple flavours of same item (maybe tho)
+        #   - actually wanna calculate revenue here DUHHHH # TODOASAP <<<<<<<<<<<<<< (this is where like an area chart would be good btw!)
+
+        
+        METRIC_ERROR_MSG = """
+            Wild MISSINGNO Appeared!\n
+            No Data for {} on {}\n
+            ({})
+            """
+
+        INSIGHT_TIP_1 = f"""
+            ###### Sales Analysis\n
+            Average Sales Per Hour: {average_hourcups:.0f} cups sold\n
+            Hours Above Average Sales: {", ".join(list(map(lambda x : f"{x}pm" if x > 11 else f"{x}am" , list(above_avg_hourcups.keys()))))}\n
+            - get staff 
+            Hours Under Average Sales: {", ".join(list(map(lambda x : f"{x}pm" if x > 11 else f"{x}am" , list(under_avg_hourcups.keys()))))}\n
+            - consider offers
+            """
+
+        # TODOASAP - TEXT YO!
+
+        # rename these
+        insightTab1, insightTab2, insightTab3 = st.tabs(["Core Insights", "Tasty Insights", "Anutha Insights Title"])
+        with insightTab1:
+            st.markdown("##### Insights")
+            st.write("Your personal insights dynamically created from the data you've selected")
+            st.markdown(f"###### Worst Performing Hour : {worst_performer}")
+            st.write(f"At {worst_time}{'pm' if worst_time > 11 else 'am'} consider offers + less staff")   
+            st.markdown(f"###### Best Performing Hour: {best_performer}")  
+            st.write(f"At {best_time}{'pm' if best_time > 11 else 'am'} ensure staff numbers with strong workers at this time to maximise sales")
+            st.markdown(INSIGHT_TIP_1)
+
+            #insightCol1.image("imgs/insight.png")  # width=140
+            # formatting for img if its a london store
+            #current_store = str(store_selector).lower() # selected_stores_1
+            #if "london" in current_store:
+            #    current_store = "-".join(current_store)
+            #insightCol1.image(f"imgs/cshop-small-{current_store}.png") # width=140
+
+
+        with insightTab2:
+
+            my_hungry_ass, cooling_window = st.columns(2)
+
+            with cooling_window:
+                # TODOASAP - OWN FUNCTION DUHHH!
+                # ITEM 1 - UNORDERED
+                # prepare the dataframe from the amount of cups (item 1) sold per hour
+                pie_sawce = pd.DataFrame({"values": results_dict.values(), "hours":results_dict.keys()}) # mmmmm pie sauce
+                # prepare the pie (gas mark 5, 25 minutes)
+                pie_base = alt.Chart(pie_sawce).encode(
+                    theta=alt.Theta("values:Q", stack=True),
+                    radius=alt.Radius("values", scale=alt.Scale(type="sqrt", zero=True, rangeMin=20)),
+                    color="hours:N")
+                # render the pie
+                pie_crust = pie_base.mark_arc(innerRadius=20, stroke="#fff") # the actual chart
+                pie_decotation = pie_base.mark_text(radiusOffset=10).encode(text="values:Q") # the text... i get bored sometimes
+                st.altair_chart(pie_crust + pie_decotation, use_container_width=True)
+
+
+            # CONSIDER A BUMP CHART IDK - GOOD VISUAL TBF!
+            # https://altair-viz.github.io/gallery/bump_chart.html
+            
+            
 
 # OK SO NEXT/RN
 
@@ -931,6 +1055,9 @@ def run():
 # - actual fucking insights
 # - move the functs outside of run
 # - date ranges (just 1 more or maybe even just skip for now tbh)
+#   - ensure single day still works perfectly
+#   - if this continues to be iffy, move it to 2nd place so that first thing on tab is between 2 dates (as errors less)
+#   - on my current critical error handling ting add a button that the user can press!
 # - test multithreading with args and return values (can try on a new page duh)
 
 # - wtf random markdown number, comments, ideally starting on a monday or sunday if is easy enough (should be tbf but should skip this)
@@ -961,24 +1088,36 @@ def run():
 
 # ---- DRIVER ----
 if __name__ == "__main__":
-    # TODOASAP - force experiemental rerun one time initially (use a singleton function ig?) so it is forced to wide mode
-    # TODOASAP - also add a info box for this like "better in/designed for wide mode - if this has run in box mode use settings in top right..."
-    
-    # TODOASAP - probably need on error, clear cache btw!
     try:
         run()
+    # if errors due to connection, wipe the entire cache (which is the issue, the cached connection), then user rerun fixes issue
     except mysql.connector.errors.OperationalError as operr:
-        # new test - if errors due to connection, wipe the entire cache (which seems to be the issue anyway, the cached connection), then rerun everything
-        print("\n\nERROR HANDLING\n\n")
-        print(operr)
+        # log error messages
+        logger.error("ERROR! - (╯°□°）╯︵ ┻━┻")
+        logger.info("What The Connection Doin?")
+        logger.info(operr)
+        # wipe the cache thoroughly
         st.experimental_memo.clear()
         st.experimental_singleton.clear()
-        #legacy_caching.clear_cache()
-        st.error("Critical Error Averted - Please Change Any Field To Rerun The Program")
-        #st.experimental_rerun
+        # display info to the user
+        ERROR_MSG_1 = """(╯°□°）╯︵ ┻━┻\n
+        Critical Error Averted\n
+        It's A DB Connection Bug [not a duplicate error, silly streamlit]\n
+        Change any field or push the button in the sidebar/below to rerun"""
+        st.error(ERROR_MSG_1)
+        st.button("Push Me - I Don't Bite", key="pushme2")
+        st.sidebar.warning("Push The Button To Re-Run")
+        st.sidebar.button("ReRun App", key="pushme1")
         conn = db.init_connection()
         run()
+        #legacy_caching.clear_cache()
+        #st.experimental_rerun
         #raise RerunException(run)
+        
+    except DuplicateWidgetID as dupwid:
+        logger.error("ERROR! - (╯°□°）╯︵ ┻━┻")
+        logger.info("Isn't Actually A Duplicate Error Btw")
+        logger.info(dupwid)
         
 
 
