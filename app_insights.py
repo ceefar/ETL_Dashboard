@@ -190,7 +190,7 @@ def create_size_query(multi_size_selector_x:list) -> str:
     return(final_size_select)
 
 
-@st.cache
+#@st.cache()
 def get_hour_cups_data(flavour_x_concat, selected_stores_x, select_date, item_selector_x, final_size_select_x, final_flav_select_x, after_concat:str):
     """ groups together all of the complex queries in to the final query and returns the data - is cached """
 
@@ -214,6 +214,9 @@ def get_hour_cups_data(flavour_x_concat, selected_stores_x, select_date, item_se
                             AND {final_flav_select_x} GROUP BY d.time_stamp, item"
     logger.info("Final hour x cups Altair chart query (get_hour_cups_data) - {0}".format(cups_by_hour_query)) 
     hour_cups_data = db.get_from_db(cups_by_hour_query)  
+
+    # TODOASAP - TO CACHE THIS (& HASH IT FOR RETURN) IT SEEMS LIKE YOU NEED TO CHANGE THE DATE TO A STRING PROBABLY IDK THO
+
     return(hour_cups_data) 
 
 
