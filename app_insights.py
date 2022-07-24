@@ -4,7 +4,7 @@
 import streamlit as st
 import streamlit.components.v1 as stc
 from streamlit.errors import StreamlitAPIException
-#from streamlit import caching
+from streamlit.scriptrunner import RerunException
 # for date time objects
 import datetime
 # for db integration
@@ -78,7 +78,8 @@ def add_to_db(query):
 # ---- FUNCTIONS ----
 
 # base queries used for the initial display of the web app using the default store, and other basic queries like valid dates
-@st.experimental_singleton # is shared across all users connected to the app so can be accessed from multiple threads 
+#@st.experimental_singleton # is shared across all users connected to the app so can be accessed from multiple threads 
+@st.cache
 def base_queries() -> dict: # could place this in db integration in future btw
     """ run and cache these base queries, grabs a chunk of base data from 'Chesterfield' for the initially loaded dashboard """   
     
@@ -144,17 +145,21 @@ def get_main_items_from_stores(user_store:str) -> list:
     return(main_item_list)
 
 
+@st.cache
 def get_main_items_from_stores_updated(user_store:str) -> list:
     """ write me """
     # get only main item name for user select dropdowns using new, updated/improved productpricing table instead of complicated inner join 
+    print(user_store)
+    if "London" in user_store:
+        user_store = user_store.replace(" ","_") 
+    print(user_store)
+    print(f"SELECT DISTINCT item_name FROM ProductPricing WHERE {user_store.lower()} = 1")
     get_main_items = get_from_db(f"SELECT DISTINCT item_name FROM ProductPricing WHERE {user_store.lower()} = 1")
     main_items_list = []
     for item in get_main_items:
         main_items_list.append(item[0])
     # return the result
     return(main_items_list)
-
-    pass
 
 
 @st.cache
@@ -564,6 +569,16 @@ def run():
         flavour_1_concat = decide_to_include_flavour(flavour_1_is_null)
         flavour_2_concat = decide_to_include_flavour(flavour_2_is_null)
 
+
+        # TODOASAP 
+        # HELLA TEMP AS THIS SHOULD NEVER HAVE CHANGED ANYWAY BUT MEH - DO NEED TO FIND / COVER THE ROOT CAUSE THO
+        if st.session_state["last_active_date_tab"] == 4:
+            print(st.session_state["last_active_date_tab"])
+            last_active_tab(2)
+            selected_date = set_selected_date_from_last_active_tab(use_vs_selected_date_dict)
+            selected_date = make_date_query(selected_date)
+
+
         # the key/int of the last active tab for deciding whether want results to have week based tab display
         active_tab_key = last_active_tab(want_return=True)
 
@@ -589,10 +604,22 @@ def run():
 
         if active_tab_key != 1:
             # get the needed date info (first valid date, date at end of first week, difference in days from start to end)
+
             true_start_date_str = (selected_date[10:20])
             true_end_date_str = (selected_date[27:37])
+
+            # quick debugging
+            print("selected_date", selected_date)
+            print("true_start_date_str", true_start_date_str)
+            print("true_end_date_str", true_end_date_str)
+            print(st.session_state["last_active_date_tab"])
+
             first_date_altair = datetime.datetime.strptime(true_start_date_str, '%Y-%m-%d')
             last_date_altair = datetime.datetime.strptime(true_end_date_str, '%Y-%m-%d')
+
+            print("first_date_altair", first_date_altair)
+            print("last_date_altair", last_date_altair)
+
             end_of_first_week_date_altair = first_date_altair + datetime.timedelta(days=7)
             end_of_first_week_date_altair = end_of_first_week_date_altair.date()
             first_date_altair = first_date_altair.date()
@@ -607,8 +634,13 @@ def run():
             weeks_between_dates, first_date_altair, end_of_first_week_date_altair = 0, 0, 0
             
         # log the hour cup results for multi-dates but only a tiny subset of the resulting queries else its far too chunky
-        logger.info("\n\nResult of get_hour_cups_data query (left/item 1)\nFirst : {0}\nLast : {1}".format(hour_cups_data_1_adv[0], hour_cups_data_1_adv[-1]))
-        #logger.info("\n\nResult of get_hour_cups_data query (right/item 2)\nFirst : {0}\nLast : {1}".format(hour_cups_data_2_adv[0], hour_cups_data_2_adv[-1])) 
+        try:
+            # but dont error the entire program just to log outputs when there is no data
+            logger.info("\n\nResult of get_hour_cups_data query (left/item 1)\nFirst : {0}\nLast : {1}".format(hour_cups_data_1_adv[0], hour_cups_data_1_adv[-1]))
+            logger.info("\n\nResult of get_hour_cups_data query (right/item 2)\nFirst : {0}\nLast : {1}".format(hour_cups_data_2_adv[0], hour_cups_data_2_adv[-1])) 
+        except IndexError:
+            pass
+        
 
         # left query (item 1)
         # empty lists used for transforming db data for df, 'all' covers all dates, the rest is week by week
@@ -795,23 +827,18 @@ def run():
 # OK SO NEXT/RN
 
 # rnrn
-# - i think this error is due to calling just the db.get_from function which then doesn't have access to the connection as it hasn't run through it yet
-    # - can either have a connection and get in here and not use db. or move everything that is a db. from here to db_integration
-    # - i think move a connection to here first as im unsure if the second option really is the problem
-# - this new table function update thing
+# - the new table functions update things - cache them btw?
 # - item 2
 # - extend function
 # - date ranges (just 1 more or maybe even just skip for now tbh)
 # - actual fucking insights
+
 
 # - dynamically doing all of the weeks
 #   - extend function, wtf random markdown number, comments, right side (item 2), single week, multiple weeks
 #   - ideally starting on a monday or sunday if is easy enough (should be tbf but should skip this part either way to do insights asap)
 # - the actual insights stuff! :D
 # - logging, unittest, ci/cd basics
-# - update functions for new product pricing thing (particularly get flavours n shit)
-#   - so much this because havent checked run times on live db
-#   - 100% have the initial data preloaded (to cache?)
 # - try out multithreading with some simple testing
 #   - create a new page for it duh
 
@@ -819,12 +846,16 @@ def run():
 # - move functions, ig and comment and clean up a bit quickly
 # - ensure single day is still working fine btw (ideally with no tabs showing) 
 # - obvs 100 needs portfolio mode before done, oh and advanced mode too maybe but idk
+    # - at this point also... due to the db.get_from function error 
+        # - move everything that was a db.get_from, from here to db_integration
+        # - then use code snippets in a different new module for portfolio mode!
 # - the calendar print
     # - also tho owt else could do with artist?
 # - make insights the homepages, and have dash as sumnt else, means insights should set to wide (and rerun to ensure is wide thing btw)
 #   - also ig can jazz it up a teeny bit (gifs n shit)
 # - also things like github/website image thing btw
 # - also check history to find that kid that had the exact same condition as me as can't remember what else he posted
+
 
 # NO CAP, ONCE THIS INSIGHTS IS DONE MOVE ON TO OTHER (QUICKER PROJECTS LIKE 2 IDEAS AM JUST GUNA COPY AND CANCER TING)
 # - one was the map idea (best suited area for you, could add in whatever user selects I want tbh but house price and like council tax, average shop sumnt is good start)
@@ -840,10 +871,13 @@ if __name__ == "__main__":
     # TODOASAP - probably need on error, clear cache btw!
     try:
         run()
-    except mysql.connector.errors.OperationalError:
+    except mysql.connector.errors.OperationalError as operr:
         # new test - if errors due to connection, wipe the entire cache (which seems to be the issue anyway, the cached connection), then rerun everything
-        #caching.clear_cache()
+        print("\n\nERROR HANDLING\n\n")
+        print(operr)
         st.experimental_memo.clear()
         st.experimental_singleton.clear()
-        st.experimental_rerun
+        st.error("Fatal Error - Please Refresh")
+        raise RerunException(run)
+
         
