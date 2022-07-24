@@ -927,23 +927,17 @@ def run():
 
 # OK SO NEXT/RN
 
-# rnrn
-# - item 2
-# - extend function
+
 # - actual fucking insights
+# - move the functs outside of run
 # - date ranges (just 1 more or maybe even just skip for now tbh)
+# - test multithreading with args and return values (can try on a new page duh)
 
-
-# - dynamically doing all of the weeks
-#   - extend function, wtf random markdown number, comments, right side (item 2), single week, multiple weeks
-#   - ideally starting on a monday or sunday if is easy enough (should be tbf but should skip this part either way to do insights asap)
-# - the actual insights stuff! :D
+# - wtf random markdown number, comments, ideally starting on a monday or sunday if is easy enough (should be tbf but should skip this)
 # - logging, unittest, ci/cd basics
-# - try out multithreading with some simple testing
-#   - create a new page for it duh
 
 # - tab stuff like title subtitle etc
-# - move functions, ig and comment and clean up a bit quickly
+# - generally move functions, ig and comment and clean up a bit quickly
 # - ensure single day is still working fine btw (ideally with no tabs showing) 
 # - obvs 100 needs portfolio mode before done, oh and advanced mode too maybe but idk
     # - at this point also... due to the db.get_from function error 
@@ -951,10 +945,12 @@ def run():
         # - then use code snippets in a different new module for portfolio mode!
 # - the calendar print
     # - also tho owt else could do with artist?
-# - make insights the homepages, and have dash as sumnt else, means insights should set to wide (and rerun to ensure is wide thing btw)
-#   - also ig can jazz it up a teeny bit (gifs n shit)
+# - hella error handling and see if i can get this shit with the connection to work cause if that always breaks rip portfolio
+# - jazz shit up a teeny bit (gifs n shit)
+# - finally tidy up then leave it for now
 # - also things like github/website image thing btw
 # - also check history to find that kid that had the exact same condition as me as can't remember what else he posted
+
 
 
 # NO CAP, ONCE THIS INSIGHTS IS DONE MOVE ON TO OTHER (QUICKER PROJECTS LIKE 2 IDEAS AM JUST GUNA COPY AND CANCER TING)
@@ -978,7 +974,7 @@ if __name__ == "__main__":
         st.experimental_memo.clear()
         st.experimental_singleton.clear()
         #legacy_caching.clear_cache()
-        st.error("Fatal Error - Please Refresh")
+        st.error("Critical Error Averted - Please Change Any Field To Rerun The Program")
         #st.experimental_rerun
         conn = db.init_connection()
         run()
