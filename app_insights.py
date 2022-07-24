@@ -216,6 +216,8 @@ def get_hour_cups_data(flavour_x_concat, selected_stores_x, select_date, item_se
     hour_cups_data = db.get_from_db(cups_by_hour_query)  
 
     # TODOASAP - TO CACHE THIS (& HASH IT FOR RETURN) IT SEEMS LIKE YOU NEED TO CHANGE THE DATE TO A STRING PROBABLY IDK THO
+    # TODO - note could also be a problem with the python version, try 3.9 - 3.7 first to see ig?
+    # NOTE - COULD LITERALLY CACHE THESE MYSELF WITH SESSION STATE JUST USING THE PARAMETER NAMES THEN IF IT FINDS THOSE PARAMETER NAMES RETURN ELSE RUN QUERY
 
     return(hour_cups_data) 
 
@@ -792,4 +794,6 @@ def run():
 if __name__ == "__main__":
     # TODOASAP - force experiemental rerun one time initially (use a singleton function ig?) so it is forced to wide mode
     # TODOASAP - also add a info box for this like "better in/designed for wide mode - if this has run in box mode use settings in top right..."
+    
+    # TODOASAP - probably need on error, clear cache btw!
     run()

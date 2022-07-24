@@ -9,7 +9,7 @@ import streamlit as st
 # ---- initialize connection ----
 # uses st.experimental_singleton to only run once.
 
-@st.experimental_singleton
+#@st.experimental_singleton
 def init_connection():
     return mysql.connector.connect(**st.secrets["mysql"])
 
@@ -27,7 +27,7 @@ def get_from_db(query):
     with conn.cursor() as cur:
         cur.execute(query)
         return cur.fetchall()
-        
+
 
 @st.experimental_memo(ttl=600)
 def add_to_db(query):
@@ -37,6 +37,7 @@ def add_to_db(query):
         conn.commit()
         #cur.close()
         #conn.close()
+
 
 
 # ---- end setup ----
@@ -150,7 +151,7 @@ def update_productpricing_for_store_basic_inventory_flavoured():
 
 # ---- driver - if needed ----
 if __name__ == "__main__":
-    update_productpricing_for_store_basic_inventory_flavoured()
+    pass
 
 
 
