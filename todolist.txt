@@ -37,6 +37,10 @@ insights stuff
 # DO THE GIT TIDY WITH READMES AND NGL RECORD SHORT VIDS OF WAGWAN FOR THE README (as link) TOO, HAVE IMGS ETC, AND JUST HAVE THAT BEING CLEAN!
 # DEFO NEED BEFORE INTERVIEWS MAN!
 
+# important note - if it errors, it dies, due to the connection 
+    - should A find a way to fix this, with maybe ping or idk with the connection but sumnt
+    - and B make sure to do as much error handling as possible
+
 # NO CAP, ONCE THIS INSIGHTS IS DONE MOVE ON TO OTHER (QUICKER PROJECTS LIKE 2 IDEAS AM JUST GUNA COPY AND CANCER TING)
 # - one was the map idea (best suited area for you, could add in whatever user selects I want tbh but house price and like council tax, average shop sumnt is good start)
 # - other was skal.es week time thing

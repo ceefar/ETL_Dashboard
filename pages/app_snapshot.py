@@ -12,21 +12,6 @@ import db_integration as db
 import PIL
 
 
-# ---- SETUP WEB APP ----
-
-def on_load():
-    """ sets the layout default to wide, set page config needs to be the first streamlit action that is run for it to work """
-    # potential bug that it sometimes doesn't do this first time round but does when you click a page again (consider re-run to force?)
-    st.set_page_config(layout="wide")
-
-
-# catch error in case that file is reloaded locally meaning app thinks config hasn't run first when it has (may have been snowflake specific so test it)
-try: 
-    on_load()
-except StreamlitAPIException:
-    pass
-
-
 # ---- FUNCTIONS ----
 
 # base queries used for the initial display of the web app using the default store, and other basic queries like valid dates
@@ -178,7 +163,7 @@ def run():
     # ---- HEADER ----
 
     topcol1, topcol2 = st.columns([1,5])
-    topcol2.markdown("# Your Dashboard")
+    topcol2.markdown("# Your Weekly? Snapshot")
     try:
         topcol1.image("imgs/cafe_sign.png", width=120)
     except:

@@ -33,6 +33,21 @@ logger = logging.getLogger()
 #logger.critical("The program became sentient, run") # 50
 
 
+# ---- SETUP WEB APP ----
+
+def on_load():
+    """ sets the layout default to wide, set page config needs to be the first streamlit action that is run for it to work """
+    # potential bug that it sometimes doesn't do this first time round but does when you click a page again (consider re-run to force?)
+    st.set_page_config(layout="wide")
+
+
+# catch error in case that file is reloaded locally meaning app thinks config hasn't run first when it has (may have been snowflake specific so test it)
+try: 
+    on_load()
+except StreamlitAPIException:
+    pass
+
+
 # ---- FUNCTIONS ----
 
 # base queries used for the initial display of the web app using the default store, and other basic queries like valid dates
@@ -92,7 +107,7 @@ def create_stores_query(user_stores_list:list, need_where:bool = True, for_data:
 #  - THEN (THIS FUNCTION) CAN QUERY FROM THAT 
 @st.cache
 def get_main_items_from_stores(user_store:str) -> list:
-    """ write me"""
+    """ write me """
     # get only main item name for user select dropdowns
     get_main_item = db.get_from_db(f"SELECT DISTINCT i.item_name FROM CustomerItems i INNER JOIN CustomerData d on (i.transaction_id = d.transaction_id) WHERE d.store = '{user_store}'")
     main_item_list = []
@@ -100,6 +115,11 @@ def get_main_items_from_stores(user_store:str) -> list:
         main_item_list.append(item[0])
     # return the result
     return(main_item_list)
+
+
+def get_main_items_from_stores_updated(user_store:str) -> list:
+    """ write me """
+    pass
 
 
 @st.cache
@@ -544,7 +564,7 @@ def run():
             
         # log the hour cup results for multi-dates but only a tiny subset of the resulting queries else its far too chunky
         logger.info("\n\nResult of get_hour_cups_data query (left/item 1)\nFirst : {0}\nLast : {1}".format(hour_cups_data_1_adv[0], hour_cups_data_1_adv[-1]))
-        logger.info("\n\nResult of get_hour_cups_data query (right/item 2)\nFirst : {0}\nLast : {1}".format(hour_cups_data_2_adv[0], hour_cups_data_2_adv[-1])) 
+        #logger.info("\n\nResult of get_hour_cups_data query (right/item 2)\nFirst : {0}\nLast : {1}".format(hour_cups_data_2_adv[0], hour_cups_data_2_adv[-1])) 
 
         # left query (item 1)
         # empty lists used for transforming db data for df, 'all' covers all dates, the rest is week by week
@@ -729,14 +749,24 @@ def run():
 
 
 # OK SO NEXT/RN
+
+# rnrn
+# - this new table function update thing
+# - item 2
+# - extend function
+# - date ranges (just 1 more or maybe even just skip for now tbh)
+# - actual fucking insights
+
 # - dynamically doing all of the weeks
 #   - extend function, wtf random markdown number, comments, right side (item 2), single week, multiple weeks
 #   - ideally starting on a monday or sunday if is easy enough (should be tbf but should skip this part either way to do insights asap)
 # - the actual insights stuff! :D
 # - logging, unittest, ci/cd basics
-# - that function to improve product pricing and generally speed up the shit + multithreading/processing testing (maybe even asnyc is better yanno - idk)
+# - update functions for new product pricing thing (particularly get flavours n shit)
 #   - so much this because havent checked run times on live db
 #   - 100% have the initial data preloaded (to cache?)
+# - try out multithreading with some simple testing
+#   - create a new page for it duh
 
 # - tab stuff like title subtitle etc
 # - move functions, ig and comment and clean up a bit quickly
@@ -757,4 +787,6 @@ def run():
 
 # ---- DRIVER ----
 if __name__ == "__main__":
+    # TODOASAP - force experiemental rerun one time initially (use a singleton function ig?) so it is forced to wide mode
+    # TODOASAP - also add a info box for this like "better in/designed for wide mode - if this has run in box mode use settings in top right..."
     run()
