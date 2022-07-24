@@ -243,7 +243,7 @@ def run():
     first_valid_date = datetime.datetime.strptime(first_valid_date, '%Y-%m-%d').date()
     last_valid_date = datetime.datetime.strptime(last_valid_date, '%Y-%m-%d').date()
 
-    # initialise session state var if there is none, default to 1 (initial date select)
+    # initialise session state var if there is none, default to 1 (this is the initial tab number (key) for single date select)
     if "last_active_date_tab" not in st.session_state:
         st.session_state["last_active_date_tab"] = 1  
     # empty var for selected stores last active tab functionality
@@ -429,22 +429,9 @@ def run():
 
 
     # ---- THE COMPARISION CHARTS ---- 
-    # TODO 
-    # BUG 
-    # FIXME 
-    # then put insights below, do this hella detailed and honestly almost wanna say maybe 1 page is fine for now
-    # other project stuff may be better to move on to as this is repetitive after new insights stuff
-    # if anything just make walkthrough recordings of my favourite bits (and other git projects too ooooo)
-
-
 
 
     # TODO 
-    # BUG 
-    # FIXME 
-    # OK BOOM STILL HAVE TABS IDEA FOR CHARTS BUT HAVE IT LIKE EITHER DIFFERENT CHART TYPES OR DIFFERENT AXIS OR SUMNT IDK
-    # IN THEORY IF WE GRAB THE DATE IN THE SELECT STATEMENT(or store or whatever but date best as can do weeks n shit)
-    # CAN HAVE TABS FOR DATE (i.e. weeks) AND ALL TIME, ETC
     # ALSO
     # MAYBE FOR ADVANCED MODE HAVE INDIVIDUAL TOGGLES TO REMOVE THINGS OR ALWAYS USE MULTISELECT IDK!
 
@@ -741,21 +728,20 @@ def run():
 #   - ideally starting on a monday or sunday if is easy enough (should be tbf but should skip this part either way to do insights asap)
 # - the actual insights stuff! :D
 # - logging, unittest, ci/cd basics
-# - that function to improve product pricing and generally speed up the shit + multithreading/processing testing
+# - that function to improve product pricing and generally speed up the shit + multithreading/processing testing (maybe even asnyc is better yanno - idk)
+#   - so much this because havent checked run times on live db
+#   - 100% have the initial data preloaded (to cache?)
+
 # - tab stuff like title subtitle etc
 # - move functions, ig and comment and clean up a bit quickly
 # - ensure single day is still working fine btw (ideally with no tabs showing) 
-# - obvs 100 needs portfolio mode before done
+# - obvs 100 needs portfolio mode before done, oh and advanced mode too maybe but idk
 # - the calendar print
     # - also tho owt else could do with artist?
 # - make insights the homepages, and have dash as sumnt else, means insights should set to wide (and rerun to ensure is wide thing btw)
 #   - also ig can jazz it up a teeny bit (gifs n shit)
-# - then maybe a quick break inbetween for some multithreading? (and things like github/website image thing??)
-#   - so much this because havent checked run times on live db
-#   - 100% have the initial data preloaded (to cache?)
-#   - remember most taxing thing is what i want a new/improved table for
+# - also things like github/website image thing btw
 # - also check history to find that kid that had the exact same condition as me as can't remember what else he posted
-
 
 # NO CAP, ONCE THIS INSIGHTS IS DONE MOVE ON TO OTHER (QUICKER PROJECTS LIKE 2 IDEAS AM JUST GUNA COPY AND CANCER TING)
 # - one was the map idea (best suited area for you, could add in whatever user selects I want tbh but house price and like council tax, average shop sumnt is good start)
