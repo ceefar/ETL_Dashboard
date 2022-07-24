@@ -5,6 +5,7 @@ import streamlit as st
 import streamlit.components.v1 as stc
 from streamlit.errors import StreamlitAPIException
 from streamlit.scriptrunner import RerunException
+from streamlit import legacy_caching
 # for date time objects
 import datetime
 # for db integration
@@ -97,7 +98,7 @@ def base_queries() -> dict: # could place this in db integration in future btw
 
 
 # TODO - move to a general functions/similar module
-@st.cache
+
 def create_stores_query(user_stores_list:list, need_where:bool = True, for_data:bool = False, is_join:bool = False) -> str:
     """ for creating the dynamic query for store selection, given list should not be None """
 
@@ -133,7 +134,7 @@ def create_stores_query(user_stores_list:list, need_where:bool = True, for_data:
 # TODOASAP 
 # SHOULD ACTUALLY MAKE A TABLE FOR THIS NOW INSTEAD, LIKE THE PRODUCT PRICING TABLE BUT SHOULD INCLUDE THE STORES DUHHHHH
 #  - THEN (THIS FUNCTION) CAN QUERY FROM THAT 
-@st.cache
+
 def get_main_items_from_stores(user_store:str) -> list:
     """ write me """
     # get only main item name for user select dropdowns
@@ -147,13 +148,11 @@ def get_main_items_from_stores(user_store:str) -> list:
 
 @st.cache
 def get_main_items_from_stores_updated(user_store:str) -> list:
-    """ write me """
-    # get only main item name for user select dropdowns using new, updated/improved productpricing table instead of complicated inner join 
-    print(user_store)
+    """ get only main item name for user select dropdowns using new, updated/improved productpricing table instead of complicated inner join  """
+    # if london update the name so it matches the col
     if "London" in user_store:
         user_store = user_store.replace(" ","_") 
-    print(user_store)
-    print(f"SELECT DISTINCT item_name FROM ProductPricing WHERE {user_store.lower()} = 1")
+    # grab the main items for the selected store from the database
     get_main_items = get_from_db(f"SELECT DISTINCT item_name FROM ProductPricing WHERE {user_store.lower()} = 1")
     main_items_list = []
     for item in get_main_items:
@@ -162,7 +161,19 @@ def get_main_items_from_stores_updated(user_store:str) -> list:
     return(main_items_list)
 
 
-@st.cache
+def get_flavours_for_item_updated(user_store:str, user_item:str) -> list:
+    """ write me """
+    # if london update the name so it matches the col
+    if "London" in user_store:
+        user_store = user_store.replace(" ","_") 
+    item_store_flavours = get_from_db(f"SELECT DISTINCT item_flavour FROM ProductPricing WHERE {user_store} = 1 AND item_name = '{user_item}'")
+    item_store_flavours_list = []
+    # convert the returned tuples into a list (don't print required as streamlit prints (to web app) list comprehensions that aren't assigned to variables)
+    dont_print_flavs = [item_store_flavours_list.append(flavour[0]) for flavour in item_store_flavours]
+    return(item_store_flavours_list)
+
+
+
 def get_flavours_for_item(user_store:str, user_item:str) -> list:
     """ write me """
     item_flavours = get_from_db(f"SELECT DISTINCT i.item_flavour FROM CustomerItems i INNER JOIN CustomerData d on (i.transaction_id = d.transaction_id) WHERE d.store = '{user_store}' AND i.item_name = '{user_item}';")
@@ -172,7 +183,7 @@ def get_flavours_for_item(user_store:str, user_item:str) -> list:
     return(item_flavours_list)
 
 
-@st.cache
+
 def create_flavour_query(flavour_x_is_null:bool, multi_flav_selector_x:list, final_item_flavours_list_x:list) -> str:
     """ write me """
 
@@ -184,7 +195,7 @@ def create_flavour_query(flavour_x_is_null:bool, multi_flav_selector_x:list, fin
         # check if this item has flavours by checking what was returned by the database for this item
         if multi_flav_selector_x[0] is None:
             # if there is no flavour for this then set the query to validate on NULL values (no = operator, no '')
-            final_flav_select = f"i.item_flavour is NULL"
+            final_flav_select = f"i.item_flavour = ''"
             # also set null flavour flag to True so that final sql can be altered to output valid string (i.item_name, i.item_size, i.item_flavour) 
             flavour_x_is_null = True
         else:
@@ -201,7 +212,7 @@ def create_flavour_query(flavour_x_is_null:bool, multi_flav_selector_x:list, fin
         # first check the available flavours that were returned by the database for this item, if true user has removed the 'None' flavour option from multiselect
         if multi_flav_selector_x is None:
             # if there is no flavour then set to validate on NULL
-            final_flav_select = f"i.item_flavour is NULL"
+            final_flav_select = f"i.item_flavour = ''"
         else:      
             # else (if the first flavour select option isn't None) then it means the user removed all from valid flavours from multiselect   
             # ternary statement prints None instead of a blank space if there is used removed all selections for flavours else prints the default flavour that's being used       
@@ -211,10 +222,12 @@ def create_flavour_query(flavour_x_is_null:bool, multi_flav_selector_x:list, fin
             # TODO - way to flag this for this column - skipping for now 
             #itemInfoCol.error(f"Flavour = {final_item_flavours_list_x[0]} >")
 
+    # since None can be in the box we just remove it if it gets added to the query and replace with a none string
+    final_flav_select = final_flav_select.replace("None","")
+    # return the result
     return(final_flav_select, flavour_x_is_null)
 
 
-@st.cache
 def create_size_query(multi_size_selector_x:list) -> str:
     """ write me """
     # split size selector if multi select, only ever Regular or Large so easier to do
@@ -230,6 +243,7 @@ def create_size_query(multi_size_selector_x:list) -> str:
     return(final_size_select)
 
 
+# TODOASAP 
 #@st.cache()
 def get_hour_cups_data(flavour_x_concat, selected_stores_x, select_date, item_selector_x, final_size_select_x, final_flav_select_x, after_concat:str):
     """ groups together all of the complex queries in to the final query and returns the data - is cached """
@@ -545,12 +559,14 @@ def run():
         logger.debug("Get list of flavours from the db, for the users selected item") # actually tuples not list but whatever
 
         with item1Col:
-            final_item_flavours_list = get_flavours_for_item(selected_stores_1, item_selector_1)
+            #final_item_flavours_list = get_flavours_for_item(selected_stores_1, item_selector_1)
+            final_item_flavours_list = get_flavours_for_item_updated(selected_stores_1, item_selector_1)
             multi_flav_selector_1 = st.multiselect(label=f"Choose A Flavour For {item_selector_1}", key="multi_flav_select_1", options=final_item_flavours_list, default=final_item_flavours_list[0])
             multi_size_selector_1 = st.multiselect(label=f"Choose A Size For {item_selector_1}", key="multi_size_select_1", options=["Regular","Large"], default="Regular")
 
         with item2Col:
-            final_item_flavours_list_2 = get_flavours_for_item(selected_stores_2, item_selector_2)
+            #final_item_flavours_list_2 = get_flavours_for_item(selected_stores_2, item_selector_2)
+            final_item_flavours_list_2 = get_flavours_for_item_updated(selected_stores_2, item_selector_2)
             multi_flav_selector_2 = st.multiselect(label=f"Choose A Flavour For {item_selector_2}", key="multi_flav_select_2", options=final_item_flavours_list_2, default=final_item_flavours_list_2[0])
             multi_size_selector_2 = st.multiselect(label=f"Choose A Size For {item_selector_2}", key="multi_size_select_2", options=["Regular","Large"], default="Regular")
 
@@ -877,6 +893,7 @@ if __name__ == "__main__":
         print(operr)
         st.experimental_memo.clear()
         st.experimental_singleton.clear()
+        legacy_caching.clear_cache()
         st.error("Fatal Error - Please Refresh")
         raise RerunException(run)
 
