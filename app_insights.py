@@ -4,6 +4,7 @@
 import streamlit as st
 import streamlit.components.v1 as stc
 from streamlit.errors import StreamlitAPIException
+#from streamlit import caching
 # for date time objects
 import datetime
 # for db integration
@@ -16,6 +17,9 @@ import pandas as pd
 import altair as alt
 # for logging
 import logging
+# for error handling (test)
+import mysql.connector
+
 
 
 # ---- LOGGER ----
@@ -53,6 +57,8 @@ except StreamlitAPIException:
 # later place all previous db.get_from functions into db integration and for portfolio mode just have code snips or something
 # shit even a module with just strings for it would be fine tbh
 # might leave as is tho tbf am unsure as of rn
+# TODOASAP
+# try except and some way to restart the connection, maybe even gudurhhhhhh - wipe cache, force experimental rerun! (as function) - if error due to connection obvs
 conn = db.init_connection()
 
 @st.experimental_memo(ttl=600)
@@ -140,7 +146,14 @@ def get_main_items_from_stores(user_store:str) -> list:
 
 def get_main_items_from_stores_updated(user_store:str) -> list:
     """ write me """
-    # TODOASAP - legit do once db update is done
+    # get only main item name for user select dropdowns using new, updated/improved productpricing table instead of complicated inner join 
+    get_main_items = get_from_db(f"SELECT DISTINCT item_name FROM ProductPricing WHERE {user_store.lower()} = 1")
+    main_items_list = []
+    for item in get_main_items:
+        main_items_list.append(item[0])
+    # return the result
+    return(main_items_list)
+
     pass
 
 
@@ -237,9 +250,10 @@ def get_hour_cups_data(flavour_x_concat, selected_stores_x, select_date, item_se
     logger.info("Final hour x cups Altair chart query (get_hour_cups_data) - {0}".format(cups_by_hour_query)) 
     hour_cups_data = get_from_db(cups_by_hour_query)  
 
-    # TODOASAP - TO CACHE THIS (& HASH IT FOR RETURN) IT SEEMS LIKE YOU NEED TO CHANGE THE DATE TO A STRING PROBABLY IDK THO
-    # TODO - note could also be a problem with the python version, try 3.9 - 3.7 first to see ig?
-    # NOTE - COULD LITERALLY CACHE THESE MYSELF WITH SESSION STATE JUST USING THE PARAMETER NAMES THEN IF IT FINDS THOSE PARAMETER NAMES RETURN ELSE RUN QUERY
+    # TODOASAP - TO CACHE THIS (& HASH IT FOR RETURN) IT SEEMS LIKE YOU NEED TO CHANGE THE DATE TO A STRING PROBABLY IDK THO 
+    # TODOASAP - BACK TO CACHED AND TEST ON 3.9 - 3.7 AS BELOW 
+    # TODO - note could also be a problem with the python version, try 3.9 - 3.7 first to see ig? 
+    # NOTE - COULD LITERALLY CACHE THESE MYSELF WITH SESSION STATE JUST USING THE PARAMETER NAMES THEN IF IT FINDS THOSE PARAMETER NAMES RETURN ELSE RUN QUERY 
 
     return(hour_cups_data) 
 
@@ -498,13 +512,16 @@ def run():
 
         with item1Col:
             store_selector_1 = st.selectbox(label=f"Which Store Do You Want To Choose An Item From?", key="store_sel_1", options=selected_stores_1, index=0, help="For more stores update the above multiselect")
-            final_main_item_list = get_main_items_from_stores(store_selector_1)
+            #final_main_item_list = get_main_items_from_stores(store_selector_1)
+            final_main_item_list = get_main_items_from_stores_updated(store_selector_1)
+            
             item_selector_1 = st.selectbox(label=f"Choose An Item From Store {store_selector_1}", key="item_selector_1", options=final_main_item_list, index=0) 
             
         with item2Col:
             store_select_2_index = 1 if len(selected_stores_1) > 1 else 0
             store_selector_2 = st.selectbox(label=f"Which Store Do You Want To Choose An Item From?", key="store_sel_2", options=selected_stores_1, index=store_select_2_index, help="For more stores update the above multiselect")
-            final_main_item_list = get_main_items_from_stores(store_selector_2)
+            #final_main_item_list = get_main_items_from_stores(store_selector_2)
+            final_main_item_list = get_main_items_from_stores_updated(store_selector_2)
             item_selector_2 = st.selectbox(label=f"Choose An Item From Store {store_selector_2}", key="item_selector_2", options=final_main_item_list, index=1)
             
         # set the user results to vars used in the queries
@@ -821,4 +838,12 @@ if __name__ == "__main__":
     # TODOASAP - also add a info box for this like "better in/designed for wide mode - if this has run in box mode use settings in top right..."
     
     # TODOASAP - probably need on error, clear cache btw!
-    run()
+    try:
+        run()
+    except mysql.connector.errors.OperationalError:
+        # new test - if errors due to connection, wipe the entire cache (which seems to be the issue anyway, the cached connection), then rerun everything
+        #caching.clear_cache()
+        st.experimental_memo.clear()
+        st.experimental_singleton.clear()
+        st.experimental_rerun
+        
