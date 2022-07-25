@@ -12,6 +12,7 @@ import db_integration as db
 import PIL
 # for data manipulation
 import pandas as pd
+import numpy as np
 # for detailed data visualisation
 import altair as alt
 # for logging
@@ -376,6 +377,7 @@ def get_dicts_for_above_below_avg_cups(hourcups_dict:dict, average_hourcups:int)
 
 
 # TODOASAP - note testing cache here
+# TODOASAP - TYPE HINTS HERE PLS (ik its long but pleeeeease)
 # TODOASAP - also how about just dont run this, and other, functions if the df is empty duh
 @st.cache
 def create_hourcups_insights_data(hourcups_dict, hcd_sort_by_value):
@@ -385,7 +387,59 @@ def create_hourcups_insights_data(hourcups_dict, hcd_sort_by_value):
     hcd_sort_by_value_formatted_list = create_formatted_hourcup_string_list_with_ampm(hcd_sort_by_value)
     worst_time, best_time, worst_performer, best_performer = get_worstbest_time_with_formattedstrings(hcd_sort_by_value, hcd_sort_by_value_formatted_list)
     above_avg_hc, below_avg_hc = get_dicts_for_above_below_avg_cups(hourcups_dict, average_hourcups)
-    return(average_hourcups, worst_time, best_time, worst_performer, best_performer, above_avg_hc, below_avg_hc)
+    overperformed_by_dict = get_more_insights(above_avg_hc, average_hourcups)
+    hc_std_dict, hc_standard_deviation = get_standard_deviation_and_floor_div_dict_for_hc(hourcups_dict)
+    return(average_hourcups, worst_time, best_time, worst_performer, best_performer, above_avg_hc, below_avg_hc, overperformed_by_dict, hc_std_dict, hc_standard_deviation)
+
+
+def get_standard_deviation_and_floor_div_dict_for_hc(hourcups_dict:dict) -> tuple[dict, float]:
+    """ standard deviation... write me """
+    hourcups_values_list = []
+    # get the values of the hc dict in a list (as numpy standard deviation funct wont just take dict.values())
+    dont_print_me_3 = [hourcups_values_list.append(cupcount) for cupcount in hourcups_dict.values()]
+    # run the standard deviation on the values of cups sold for each hour - hour cups standard deviation = hc_std
+    hc_std = np.std(hourcups_values_list)
+    # chuck those values into a new dict, same format as always but values are floor div vs standard deviation, e.g. value=109, sd=30, valuestd=3
+    hc_std_diff_dict = {}
+    for hourkey, cupsvalue in hourcups_dict.items():
+        # unsure about floor division but makes sense as its standard deviation we're calculating (and i dont wanna play around with a jillion dps)
+        hc_std_diff_dict[hourkey] = cupsvalue // hc_std
+    # return the dict and the standard deviation
+    return((hc_std_diff_dict, float(hc_std)))
+
+
+def get_more_insights(above_avg_hc_dict:dict, average_hourcups:int):
+    """ function for new misc insights """
+    # amount overperformed by (only above average hourly sales)
+    amount_above_the_avg_dict =  {}
+    for hourkey, cupsvalue in above_avg_hc_dict.items():
+        # populate new dictionary with key = hour (again), but the value as the difference between the sum of cups sold for the hour and the hourly average  
+        amount_above_the_avg_dict[hourkey] = cupsvalue - average_hourcups
+    # return the dict
+    return(amount_above_the_avg_dict)
+
+
+def get_price_for_item(item_selector, final_size_select, final_flav_select):
+    """ write me """
+    # whole thing including query kinda hacky but if it works it works
+    updated_flava_select = final_flav_select.replace("= ''","is NULL")
+    # straight up if this doesn't break at times i'll be shocked, only tested based on one case... so test more duh
+    price_of_item = get_from_db(f"SELECT price FROM ProductPricing i WHERE item_name = '{item_selector}' AND {final_size_select} AND {updated_flava_select}")
+    price_of_item = price_of_item[0][0]
+    # return the price
+    return(price_of_item)
+
+
+# might not be a float, check please
+def create_revenue_by_hour_dict_n_total_revenue(hourcups_dict:dict, price_of_item:float) -> tuple[float, dict]:
+    """ write me """
+    revenue_by_hour_dict = {}
+    total_revenue = 0
+    for hourkey, valuecups in hourcups_dict.items():
+        revenue_by_hour_dict[hourkey] = valuecups * price_of_item
+        total_revenue += revenue_by_hour_dict[hourkey]
+    # return the results
+    return(revenue_by_hour_dict, total_revenue)
 
 
 def combine_both_items_data_lists_for_df(first_item_list:list, second_item_list:list): 
@@ -431,22 +485,27 @@ def extend_all_lists(just_cupcount_list_x_all, just_hour_list_x_all, just_names_
 
 def create_dataframe_setup_chart(just_names_list_1_range, just_cupcount_list_1_range, just_hour_list_1_range):
     """ create the dataframes and resulting altair chart data (barchart + text) for a given range and return the results for rendering """
+    # idelly would run a small formatting function on just_names to make them more readable but is fine for now
 
     # create the dataframe
     sawce = create_hourcups_dataframe(just_names_list_1_range, just_cupcount_list_1_range, just_hour_list_1_range)
 
+    # customising altair chart personal notes - particularly for colouring
+    # set1 blue red start, too powerful but contrasting, category10 orange blue start - for reference see links below
+    # https://vega.github.io/vega/docs/schemes/  https://altair-viz.github.io/user_guide/customization.html#color-schemes
+
     # setup barchart
     bar_chart = alt.Chart(sawce).mark_bar().encode(
-        color="DrinkName:N",
+        color=alt.Color('DrinkName', scale=alt.Scale(scheme='category10'), legend=alt.Legend(title = "Product Name", orient="left")),  
         x="sum(CupsSold):Q",
-        y="HourOfDay:N"
+        y="HourOfDay:N",
     ).properties(height=300)
 
     # setup text labels for barchart
-    chart_text = alt.Chart(sawce).mark_text(dx=-10, dy=3, color='white', fontSize=12, fontWeight=600).encode(
+    chart_text = alt.Chart(sawce).mark_text(dx=-12, dy=3, color='white', fontSize=12, fontWeight=600).encode(
         x=alt.X('sum(CupsSold):Q', stack='zero'),
         y=alt.Y('HourOfDay:N'),
-        detail='DrinkName:N',
+        detail='DrinkName:N',                   
         text=alt.Text('sum(CupsSold):Q', format='.0f')
     )
     # return the result
@@ -720,7 +779,7 @@ def run():
             multi_size_selector_2 = st.multiselect(label=f"Choose A Size For {item_selector_2}", key="multi_size_select_2", options=["Regular","Large"], default="Regular")
 
         # because why not make clear to the user when you know they're trying to break stuff
-        if len(multi_flav_selector_1) == 0 or len(multi_flav_selector_2) == 0:
+        if len(multi_flav_selector_1) == 0 or len(multi_flav_selector_2) == 0 or len(multi_size_selector_1) == 0 or len(multi_size_selector_2) == 0:
             with st.sidebar:
                 JUDGING_MESSAGE = """You just gotta be awkward huh...\n
                 *judges you*
@@ -1071,22 +1130,33 @@ def run():
         # create hour vs cups sold dictionaries used for insights 
         hourcups_dict_1, hcd_sort_by_value_1 = create_two_simple_cups_for_hour_dict(df_sawce_1)
         # then get the hourcups insights data
-        average_hourcups_1, worst_time_1, best_time_1, worst_performer_1, best_performer_1,\
-            above_avg_hc_1, below_avg_hc_1 = create_hourcups_insights_data(hourcups_dict_1, hcd_sort_by_value_1)
+        average_hourcups_1, worst_time_1, best_time_1, worst_performer_1, best_performer_1, above_avg_hc_1, below_avg_hc_1,\
+            overperformed_by_dict_1, hc_std_dict_1, hc_std_1 = create_hourcups_insights_data(hourcups_dict_1, hcd_sort_by_value_1)
+        # new things - price of item, revenue for each hour dict, total revenue for item for timeframe
+        price_of_item_1 = get_price_for_item(item_selector_1, final_size_select_1, final_flav_select_1)
+        revenue_by_hour_dict_1, total_revenue_1 = create_revenue_by_hour_dict_n_total_revenue(hourcups_dict_1, price_of_item_1)   
         
         # for item 2
         # create hour vs cups sold dictionaries used for insights 
         hourcups_dict_2, hcd_sort_by_value_2 = create_two_simple_cups_for_hour_dict(df_sawce_2)
         # then get the hourcups insights data
-        average_hourcups_2, worst_time_2, best_time_2, worst_performer_2, best_performer_2,\
-            above_avg_hc_2, below_avg_hc_2 = create_hourcups_insights_data(hourcups_dict_2, hcd_sort_by_value_2)
+        average_hourcups_2, worst_time_2, best_time_2, worst_performer_2, best_performer_2, above_avg_hc_2, below_avg_hc_2,\
+            overperformed_by_dict_2, hc_std_dict_2, hc_std_2 = create_hourcups_insights_data(hourcups_dict_2, hcd_sort_by_value_2)
+        # new things - price of item, revenue for each hour dict, total revenue for item for timeframe
+        price_of_item_2 = get_price_for_item(item_selector_2, final_size_select_2, final_flav_select_2)
+        revenue_by_hour_dict_2, total_revenue_2 = create_revenue_by_hour_dict_n_total_revenue(hourcups_dict_2, price_of_item_2)   
 
         # for both items together (sum of compared hourcups per hour)
         # create hour vs cups sold dictionaries used for insights 
         hourcups_dict_both, hcd_sort_by_value_both = create_two_simple_cups_for_hour_dict(df_sawce_both)
         # then get the hourcups insights data
-        average_hourcups_both, worst_time_both, best_time_both, worst_performer_both, best_performer_both,\
-            above_avg_hc_both, below_avg_hc_both = create_hourcups_insights_data(hourcups_dict_both, hcd_sort_by_value_both)
+        average_hourcups_both, worst_time_both, best_time_both, worst_performer_both, best_performer_both, above_avg_hc_both, below_avg_hc_both,\
+            overperformed_by_dict_both, hc_std_dict_both, hc_std_both = create_hourcups_insights_data(hourcups_dict_both, hcd_sort_by_value_both)
+
+        # TODOASAP 
+        # for new stuff its just the other stuff added (but is it tho? - haven't confirmed this for stuff like standard deviation)
+        # print stuff to be sure, then do the obvs missing new stuff that have for above if its relevant to do so
+        # obvs some stuff like total revenue just add them together duhhh
 
         # ---- END INSIGHT CALCULATIONS (mostly) ----
         
@@ -1136,7 +1206,7 @@ def run():
                         theta=alt.Theta("values:Q", stack=True),
                         radius=alt.Radius("values", scale=alt.Scale(type="sqrt", zero=True, rangeMin=20)),
                         color="hours:N")
-                    # render the pie
+                    # render the pie... i mean kettle... wait
                     pie_crust = pie_base.mark_arc(innerRadius=20, stroke="#fff") # the actual chart
                     pie_decotation = pie_base.mark_text(radiusOffset=10).encode(text="values:Q") # the text... i get bored sometimes
                     st.altair_chart(pie_crust + pie_decotation, use_container_width=True)   
@@ -1147,32 +1217,48 @@ def run():
     
         insightBothItemsTab, insightItem1Tab, insightItem2Tab = st.tabs(["Insights - Both Items", f"1.{item_selector_1}", f"2.{item_selector_2}"])
         
+
+
+
+        
+       
+
+        
+
+
+        print(overperformed_by_dict_1)
+        print(hc_std_dict_1)
+        print(hc_std_1) 
+        print(hourcups_dict_1)
+
+        print("price for item 1 = ", f"$", price_of_item_1, sep='')
+        print("total revenue for item 1 = ", f"$", f"{total_revenue_1:.2f}", sep='')
+        for hourkey, revenuevalue in revenue_by_hour_dict_1.items():
+            print(f"{hourkey} : ${revenuevalue:.2f}")
+
+
+
+
+
         with insightBothItemsTab:
+            # ---- BOTH ITEMS ----
             st.markdown("*Note - Currently Insights are only for the full date range, not week by week*")
             fill_sublevel_tabs_with_insights(worst_performer_both, worst_time_both, best_performer_both, best_time_both,\
                                         average_hourcups_both, above_avg_hc_both, below_avg_hc_both, hourcups_dict_both)
 
         with insightItem1Tab:
+            # ---- ITEMS 1 ----
             st.markdown("*Note - Currently Insights are only for the full date range, not week by week*")
             fill_sublevel_tabs_with_insights(worst_performer_1, worst_time_1, best_performer_1, best_time_1,\
                                         average_hourcups_1, above_avg_hc_1, below_avg_hc_1, hourcups_dict_1)
 
         with insightItem2Tab:
+            # ---- ITEMS 2 ----
             st.markdown("*Note - Currently Insights are only for the full date range, not week by week*")
             fill_sublevel_tabs_with_insights(worst_performer_2, worst_time_2, best_performer_2, best_time_2,\
                                         average_hourcups_2, above_avg_hc_2, below_avg_hc_2, hourcups_dict_2)
         
         
-
-        
-        
-        
-        
-        
-
-
-
-
 
 
 
@@ -1180,13 +1266,16 @@ def run():
 
 # OK SO NEXT/RN
 
-# do tabs for item 1, item 2 and both and get them working with the respective data (only all for now, not weeks)
+# then get the initial card layout thing done and dusted (hella basic, will improve shortly) 
+# - legit just start doing this as combo for item 1 and both, including all the new stuff then just continue
+# THE NEW THINGS ASAP CONSIDERATION N0TE 
+# - i.e. what is standard deviation for both, is that still correct
+# - and what about the other new things, are they still relevant, is there a way to do so - as will impact dynamically creating the cards
 
-# then get the initial card layout thing done and dusted (hella basic, will improve shortly)
 
 # then do a tidbit more on insights here
 # - overperformed by how much
-# - if multiple sizes of same item get sumnt regardless of how basic
+# - if multiple sizes of same item get sumnt regardless of how basic (hmmm come back to this tbf - shouldnt be too hard tho)
 # - calculate actual revenue duh, use a diff type of chart too
 #   - consider bump chart, maybe not for here tbf actually https://altair-viz.github.io/gallery/bump_chart.html
 
