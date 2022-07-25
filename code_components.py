@@ -295,8 +295,8 @@ rel="stylesheet">
 </div>
 <div class="row1-container">
 <div class="box box-down cyan">
-<h2>Supervisor</h2>
-<p>Monitors activity to identify project roadblocks</p>
+<h2>{0} Avg Cups Sold Per Hour</h2>
+<p>{1} are all performing strongly, and are over the average hourly sales<br>- Make sure dedicated staff are available during these hours</p>
 <img src="https://assets.codepen.io/2301174/icon-supervisor.svg" alt="">
 </div>
 
@@ -324,3 +324,6 @@ rel="stylesheet">
 """
 #stc.html(TEST_CARD_HTML_2.format(), height=1500)
 
+
+#<h2>{0} Is Highly Popular</h2>
+#<p>At {0} we're seeing {1}x the standard deviation in sales for {2}</p>

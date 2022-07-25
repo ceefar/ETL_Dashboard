@@ -442,6 +442,17 @@ def create_revenue_by_hour_dict_n_total_revenue(hourcups_dict:dict, price_of_ite
     return(revenue_by_hour_dict, total_revenue)
 
 
+def create_hc_1_vs_2_difference_in_revenue_by_hour_dict(rev_by_hour_dict_1:dict, rev_by_hour_dict_2:dict) -> dict[int:float]:
+    """ create dictionary of the difference between item 1 and item 2 revenue per hour """
+    diff_in_revenue_by_hour_dict = {}
+    # random af comment but i looooooove stuff like this, mmm complex for loop with multiple zips, dict items, placeholder, unpacking, mmmmmmmmmmm
+    for (hourkey, revvalue), (_, revvalue2) in zip(rev_by_hour_dict_1.items(), rev_by_hour_dict_2.items()):
+        # important to note that minus means item 2 had more sales as we're doing item 1 minus item 2 (just remove minus and its gravy)
+        # also cast these to python number types as they were numpy types before this which is fine, except until it isn't and aint nobody got time for dat
+        diff_in_revenue_by_hour_dict[int(hourkey)] = float(revvalue - revvalue2) # hourkey will be the same either way since using the unordered versions (so 9am - 16pm)
+    return(diff_in_revenue_by_hour_dict)
+
+
 def combine_both_items_data_lists_for_df(first_item_list:list, second_item_list:list): 
     """ combined data from both items (1&2) to get generalised insights, used for creating df, is not the same as 'all' dates, both here means stores """ 
     # copy first, as its a list - despite the lack of type hints :(
@@ -1152,11 +1163,7 @@ def run():
         # then get the hourcups insights data
         average_hourcups_both, worst_time_both, best_time_both, worst_performer_both, best_performer_both, above_avg_hc_both, below_avg_hc_both,\
             overperformed_by_dict_both, hc_std_dict_both, hc_std_both = create_hourcups_insights_data(hourcups_dict_both, hcd_sort_by_value_both)
-
-        # TODOASAP 
-        # for new stuff its just the other stuff added (but is it tho? - haven't confirmed this for stuff like standard deviation)
-        # print stuff to be sure, then do the obvs missing new stuff that have for above if its relevant to do so
-        # obvs some stuff like total revenue just add them together duhhh
+        # if you want revenue by hour dict or total revenue for both items together just create dem, tot rev easy just add but dicts needs looping (easy enuff)
 
         # ---- END INSIGHT CALCULATIONS (mostly) ----
         
@@ -1173,9 +1180,20 @@ def run():
             # obviously rename these tabs, add subtitles and explanation text (be succinct tho ffs!) # TODOASAP
             insightTab1, insightTab2, insightTab3 = st.tabs(["Core Insights", "Detailed Insights", "More Insights"])
             
+        
+
+
+            # TODOASAP
+            # TEMP TESTING
+            hours_above_avg_sales = ', '.join(list(map(lambda x : f'{x}pm' if x > 11 else f'{x}am' , list(above_avg_hc.keys()))))
+            # INSIGHTS LIKE - consider bundling this items a these times for upsell potential
+
+
+
+
             # ---- CORE INSIGHTS - CARDS ----
             with insightTab1:
-                stc.html(FOUR_CARD_INFO.format(), height=1500)
+                stc.html(FOUR_CARD_INFO.format(f"{average_hourcups:.0f}", hours_above_avg_sales), height=1500)
             
             # ---- INSIGHT DETAILS - TEXT ----
             with insightTab2:
@@ -1220,22 +1238,31 @@ def run():
 
 
 
-        
-       
-
-        
-
 
         print(overperformed_by_dict_1)
         print(hc_std_dict_1)
         print(hc_std_1) 
         print(hourcups_dict_1)
-
         print("price for item 1 = ", f"$", price_of_item_1, sep='')
         print("total revenue for item 1 = ", f"$", f"{total_revenue_1:.2f}", sep='')
-        for hourkey, revenuevalue in revenue_by_hour_dict_1.items():
-            print(f"{hourkey} : ${revenuevalue:.2f}")
+        # moved revenue_diff_by_hour_dict below
+        print("hc_std_dict_both", hc_std_dict_both)
+        print("hc_std_both", hc_std_both)
 
+
+        # TODOASAP - LEGIT THIS SHIT IS DONE, DO CARDS, DO INSIGHTS, PORTFOLIO MODE, BE DONE WITH IT (do other stuff!)
+        # thinking for the 4 things in cards...
+        # best selling (volume/popularity) hour, standard deviation sumnt, greatest revenue hour or revenue for the period (sumnt revenue), and avg sales
+
+
+        # TODOASAP - MAKE THIS A FUNCTION
+        # get the highest standard deviations value floor - divd btw so can be multiple but here we are just getting the max value 
+        highest_sd_both = max(list(hc_std_dict_both.values())) 
+        print("highest_sd_both", highest_sd_both)
+        # loop the items to return the keys only if it matches the highest standard deviation value - incase there is more than one
+        highest_sd_hours_both = [key for key, value in hc_std_dict_both.items() if value == highest_sd_both]
+        print("highest_sd_hours_both", highest_sd_hours_both)
+        # ACTIONABLE INSIGHT TO BE SOMETHING LIKE A 5P INCREASE ON THIS ITEM WILL BE ENTIRE UNNOTICED BY CUSTOMERS BUT WILL GENERATE SIGNIFICANT REVENUE???? (sim)
 
 
 
@@ -1243,6 +1270,9 @@ def run():
         with insightBothItemsTab:
             # ---- BOTH ITEMS ----
             st.markdown("*Note - Currently Insights are only for the full date range, not week by week*")
+            # this is 1 minus 2 so is really unique and not valid for 1 or 2 hence why it is here (legit placed here so i dont forget it too)
+            revenue_diff_by_hour_dict = create_hc_1_vs_2_difference_in_revenue_by_hour_dict(revenue_by_hour_dict_1,revenue_by_hour_dict_2)
+            print("revenue_diff_by_hour_dict", revenue_diff_by_hour_dict)
             fill_sublevel_tabs_with_insights(worst_performer_both, worst_time_both, best_performer_both, best_time_both,\
                                         average_hourcups_both, above_avg_hc_both, below_avg_hc_both, hourcups_dict_both)
 
@@ -1268,9 +1298,6 @@ def run():
 
 # then get the initial card layout thing done and dusted (hella basic, will improve shortly) 
 # - legit just start doing this as combo for item 1 and both, including all the new stuff then just continue
-# THE NEW THINGS ASAP CONSIDERATION N0TE 
-# - i.e. what is standard deviation for both, is that still correct
-# - and what about the other new things, are they still relevant, is there a way to do so - as will impact dynamically creating the cards
 
 
 # then do a tidbit more on insights here
