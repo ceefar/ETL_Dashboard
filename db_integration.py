@@ -9,7 +9,10 @@ import streamlit as st
 # ---- initialize connection ----
 # uses st.experimental_singleton to only run once.
 
-@st.experimental_singleton
+# TODOASAP remove or keep singleton decorator but decide ffs 
+# https://docs.streamlit.io/library/api-reference/performance/st.experimental_singleton
+
+#@st.experimental_singleton
 def init_connection():
     return mysql.connector.connect(**st.secrets["mysql"])
 
@@ -18,15 +21,12 @@ conn = init_connection()
 
 # ---- perform queries ----
 # both uses st.experimental_memo to only rerun when the query changes or after 10 min
-@st.experimental_memo(ttl=600)
 def get_from_db(query):
     """ perform a query that gets from database and returns a value"""
     with conn.cursor() as cur:
         cur.execute(query)
         return cur.fetchall()
 
-
-@st.experimental_memo(ttl=600)
 def add_to_db(query):
     """ performs a query with no return needed """
     with conn.cursor() as cur:

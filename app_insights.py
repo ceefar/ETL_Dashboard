@@ -4,8 +4,6 @@
 import streamlit as st
 import streamlit.components.v1 as stc
 from streamlit.errors import StreamlitAPIException, DuplicateWidgetID
-#from streamlit.scriptrunner import RerunException
-#from streamlit import legacy_caching
 # for date time objects
 import datetime
 # for db integration
@@ -18,9 +16,14 @@ import pandas as pd
 import altair as alt
 # for logging
 import logging
-# for error handling (test)
+# for error handling
 import mysql.connector
+# for html componenets 
+from code_components import TEST_CARD_HTML, FOUR_CARD_INFO
 
+# currently unused imports for debugging
+#from streamlit.scriptrunner import RerunException
+#from streamlit import legacy_caching
 
 
 # ---- LOGGER ----
@@ -33,7 +36,7 @@ logger = logging.getLogger()
 
 # ---- SETUP WEB APP ----
 
-# TODOASAP - also add a info box for this like "better in/designed for wide mode - if this has run in box mode use settings in top right..."
+# TODOASAP - MAKE SURE THIS LOADS IN WIDE MODE && 100 add a info box for this like "better in/designed for wide mode - if this has run in box mode use settings in top right..."
 def on_load():
     """ sets the layout default to wide, set page config needs to be the first streamlit action that is run for it to work """
     # potential bug that it sometimes doesn't do this first time round but does when you click a page again (consider re-run to force?)
@@ -53,10 +56,10 @@ except StreamlitAPIException:
 # shit even a module with just strings for it would be fine tbh
 # might leave as is tho tbf am unsure as of rn
 # TODOASAP
-# try except and some way to restart the connection, maybe even gudurhhhhhh - wipe cache, force experimental rerun! (as function) - if error due to connection obvs
+# test try except *just* to restart the connection
 conn = db.init_connection()
 
-@st.experimental_memo(ttl=600)
+
 def get_from_db(query):
     """ perform a query that gets from database and returns a value"""
     with conn.cursor() as cur:
@@ -70,10 +73,12 @@ def add_to_db(query):
         conn.commit()
 
 
-# ---- FUNCTIONS ----
+# TODOASAP - REALLY SHOULD MOVE A LOT OF / ALL OF THESE (remember can always do the codesnippets in code_components anyways)
 
+# ---- FUNCTIONS ----
 # base queries used for the initial display of the web app using the default store, and other basic queries like valid dates
-#@st.experimental_singleton # is shared across all users connected to the app so can be accessed from multiple threads 
+
+#@st.experimental_singleton # is shared across all users connected to the app so can be accessed from multiple threads # TODOASAP <<< this??
 @st.cache
 def base_queries() -> dict: # could place this in db integration in future btw
     """ run and cache these base queries, grabs a chunk of base data from 'Chesterfield' for the initially loaded dashboard """   
@@ -123,17 +128,7 @@ def create_stores_query(user_stores_list:list, need_where:bool = True, for_data:
         return(final_query)
 
 
-def get_main_items_from_stores(user_store:str) -> list:
-    """ write me """
-    # get only main item name for user select dropdowns
-    get_main_item = get_from_db(f"SELECT DISTINCT i.item_name FROM CustomerItems i INNER JOIN CustomerData d on (i.transaction_id = d.transaction_id) WHERE d.store = '{user_store}'")
-    main_item_list = []
-    for item in get_main_item:
-        main_item_list.append(item[0])
-    # return the result
-    return(main_item_list)
-
-
+@st.cache
 def get_main_items_from_stores_updated(user_store:str) -> list:
     """ get only main item name for user select dropdowns using new, updated/improved productpricing table instead of complicated inner join  """
     # if london update the name so it matches the col
@@ -147,9 +142,9 @@ def get_main_items_from_stores_updated(user_store:str) -> list:
     # return the result
     return(main_items_list)
 
-
+@st.cache
 def get_flavours_for_item_updated(user_store:str, user_item:str) -> list:
-    """ write me """
+    """ uses newly updated product pricing table for speed/efficency of query """
     # if london update the name so it matches the col
     if "London" in user_store:
         user_store = user_store.replace(" ","_") 
@@ -160,17 +155,34 @@ def get_flavours_for_item_updated(user_store:str, user_item:str) -> list:
     return(item_store_flavours_list)
 
 
+# ---- OLD FUNCTIONS, DON'T USE ----
+
 def get_flavours_for_item(user_store:str, user_item:str) -> list:
-    """ write me """
+    """ OLD - computationally expensive inner join """
     item_flavours = get_from_db(f"SELECT DISTINCT i.item_flavour FROM CustomerItems i INNER JOIN CustomerData d on (i.transaction_id = d.transaction_id) WHERE d.store = '{user_store}' AND i.item_name = '{user_item}';")
     item_flavours_list = []
     # convert the returned tuples into a list (don't print required as streamlit prints (to web app) list comprehensions that aren't assigned to variables)
     dont_print_2 = [item_flavours_list.append(flavour[0]) for flavour in item_flavours]
     return(item_flavours_list)
 
+def get_main_items_from_stores(user_store:str) -> list:
+    """ OLD - computationally expensive inner join """
+    # get only main item name for user select dropdowns
+    get_main_item = get_from_db(f"SELECT DISTINCT i.item_name FROM CustomerItems i INNER JOIN CustomerData d on (i.transaction_id = d.transaction_id) WHERE d.store = '{user_store}'")
+    main_item_list = []
+    for item in get_main_item:
+        main_item_list.append(item[0])
+    # return the result
+    return(main_item_list)
+
+# END OLD 
+
 
 def create_flavour_query(flavour_x_is_null:bool, multi_flav_selector_x:list, final_item_flavours_list_x:list) -> str:
-    """ write me """
+    """
+    dynamically create the flavour part of the query based on the users input,
+    including cases where there is no flavour for the item, and also if all options were removed by the user (just to be awkward)
+    """
     # first split flavour selector dynamically if multi select, requires bracket notation for AND / OR statement
     # only required for flavour, as size can only be regular or large
 
@@ -201,10 +213,7 @@ def create_flavour_query(flavour_x_is_null:bool, multi_flav_selector_x:list, fin
             # else (if the first flavour select option isn't None) then it means the user removed all from valid flavours from multiselect   
             # ternary statement prints None instead of a blank space if there is used removed all selections for flavours else prints the default flavour that's being used       
             final_flav_select = f"i.item_flavour='{final_item_flavours_list_x[0] if final_item_flavours_list_x[0] != '' else 'None'}'"
-            # so add the 'default', aka first item in the flavours list, to the query and inform the user of what has happened
-            
-            # TODO - way to flag this for this column - skipping for now 
-            #itemInfoCol.error(f"Flavour = {final_item_flavours_list_x[0]} >")
+            # so add the 'default', aka first item in the flavours list, to the query and inform the user of what has happened          
 
     # since None can be in the box we just remove it if it gets added to the query and replace with a none string
     final_flav_select = final_flav_select.replace("None","")
@@ -213,27 +222,27 @@ def create_flavour_query(flavour_x_is_null:bool, multi_flav_selector_x:list, fin
 
 
 def create_size_query(multi_size_selector_x:list) -> str:
-    """ write me """
+    """ create the size part of the query based on which sizes the user selected """
     # split size selector if multi select, only ever Regular or Large so easier to do
     if len(multi_size_selector_x) == 1:
         final_size_select = f"i.item_size='{multi_size_selector_x[0]}'"
     elif len(multi_size_selector_x) == 0:
         final_size_select = "i.item_size='Regular'"
-        # TODO again to do this column thing
-        #itemInfoCol.error(f"< Size defaults to Regular")
     else:
         final_size_select = f"(i.item_size='{multi_size_selector_x[0]}' OR i.item_size = '{multi_size_selector_x[1]}')"
     # return the result
     return(final_size_select)
 
 
-# TODOASAP - BACK TO CACHED AND TEST ON 3.9 - 3.7 
+# TODOASAP - BACK TO CACHED AND TEST ON 3.9 - 3.7, REALLY WANT THIS CACHED IF POSSIBLE 
+# TODO - ALSO THE CONCAT ORDER NAMING THING! (skip for now but note elsewhere when tidying this shit)
 #@st.cache()
-def get_hour_cups_data(flavour_x_concat, selected_stores_x, select_date, item_selector_x, final_size_select_x, final_flav_select_x, after_concat:str):
-    """ groups together all of the complex queries in to the final query and returns the data - is cached """
-
-    # new after concat parameter is for adding in a date column to the return values for separating results based on the dates
-
+def get_hour_cups_data(flavour_x_concat, selected_stores_x, select_date, item_selector_x, final_size_select_x, final_flav_select_x, after_concat:str) -> list[tuple]:
+    """ 
+    groups together all of the complex queries in to the final query and returns the data
+    isn't cached, but should be, works locally but streamlit cloud hosting no likey hash type datetime - to test using v3.7 to v3.9 to see if improves
+    returns list of tuples -> [(count, hour, flavour x item x size x store string, date as datetime.date)]
+    """
     # ---- The Query Breakdown ----
     # select count of names of each unique item sold, with the unique items = concatinated name + size + flavour (if not null)
     # if flavour is null remove it from the concat in the select query
@@ -244,7 +253,9 @@ def get_hour_cups_data(flavour_x_concat, selected_stores_x, select_date, item_se
     # joined on the transaction id (which is the field that allows the transactional 'customeritems' table to adhere to 1nf)
     # where store, date, and item name are the users selected values
 
-    # TODO - UPDATE CONCAT ORDER SO FLAVOUR IS FIRST (maybe add store) - NOTE HAVE TO TAKE COMMA INTO CONSIDERATION 
+    # [new] note after concat parameter is for adding in a date column to the return values for separating results based on the dates
+
+    # update concat order based readabililty/altering the string for readability (maybe add store), note have to take the comma into consideration
     cups_by_hour_query = f"SELECT COUNT(i.item_name) AS cupsSold, HOUR(d.time_stamp) AS theHour,\
                             CONCAT({flavour_x_concat} i.item_name, i.item_size, store) AS item {after_concat} FROM CustomerItems i\
                             INNER JOIN CustomerData d ON (i.transaction_id = d.transaction_id) WHERE store = '{selected_stores_x}'\
@@ -252,13 +263,12 @@ def get_hour_cups_data(flavour_x_concat, selected_stores_x, select_date, item_se
                             AND {final_flav_select_x} GROUP BY d.time_stamp, item"
     logger.info("Final hour x cups Altair chart query (get_hour_cups_data) - {0}".format(cups_by_hour_query)) 
     hour_cups_data = get_from_db(cups_by_hour_query)  
-    
+    # return the resulting list of tuples [(count, hour, flavour x item x size x store string, date as datetime.date)]
     return(hour_cups_data) 
 
 
-# is so simple am not guna cache it
-def decide_to_include_flavour(flavour_x_is_null):
-    """ write me """
+def decide_to_include_flavour(flavour_x_is_null:bool) -> str:
+    """ depending on if there is a flavour or not, return either i.itemflavour, or '' based on what is needed for the query """
     if flavour_x_is_null == False:
         # if flag is False, a valid flavour is included in the flavour part of the query (AND i.flavour = "x" OR i.flavour = "y")
         # so use it in the SELECT statement for finding unqiue items (unique item = item_name + unique size + unique flavour)
@@ -269,9 +279,10 @@ def decide_to_include_flavour(flavour_x_is_null):
         return("")   
 
 
-# again so simple is no need to cache
 def make_date_query(user_date:tuple|datetime.date) -> str:
-    """ write me """
+    """ takes the user selected date from the date selector widget (can be one or two dates), and return it as a query """
+    # now what I should have done (and could still do in a refactor) is set the dates to session states before converting them to strings
+    # then check last active tab to know if it was 1 or 2 dates, & *always* wipe clean 2nd date if it's only 1 date
     if isinstance(user_date, tuple):
         date_part = f" BETWEEN '{user_date[0]}' AND '{user_date[1]}' "
     else:
@@ -279,6 +290,167 @@ def make_date_query(user_date:tuple|datetime.date) -> str:
         date_part = f" = '{user_date}'"
     return(date_part)
 
+
+# ---- INSIGHTS FUNCTIONS ----
+# more functions, but just from the insights section, broken up sections for a bit more visual clarity
+
+def create_hourcups_dataframe(just_names_list:list, just_cupcount_list:list, just_hours_list:list) -> pd.DataFrame:
+    """ quickly whip up the same dataframe that was used for the chart, can be used for item 1, item 2, or both, plus 'all' or weeks """
+    # primarily used for all, not weekly subsections but can be used for that too obvs if you want to add it in in the future
+    df_sawce = pd.DataFrame({
+        "DrinkName": just_names_list,
+        "CupsSold": just_cupcount_list,
+        "HourOfDay": just_hours_list
+        })
+    return(df_sawce)
+
+
+def create_two_simple_cups_for_hour_dict(df_sawce:pd.DataFrame) -> tuple[dict, dict]:
+    """ with a given dataframe, create two dictionaries (ordered/unordered) of hour as key and sum of cups sold as value """
+    # get unique values in HourOfDay column to loop (returns array object so convert to list), then sort/order it
+    uniqueCols = sorted(list(df_sawce['HourOfDay'].unique()))
+
+    # get sum of cupsSold column based on condition (HourOfDay == x), added to dictionary with key = hour, value = sum of cups sold for hour
+    results_dict = {}
+    for value in uniqueCols:
+        cupForHour = df_sawce.loc[df_sawce['HourOfDay'] == value, 'CupsSold'].sum()
+        results_dict[value] = cupForHour
+
+    # create a new dictionary from hour/cups dictionary but sorted
+    sorted_by_value = dict(sorted(results_dict.items(), key=lambda x: x[1]))   
+    
+    # return both dictionaries, the initial unordered one, and the ordered one - technically as a tuple, then unpack it on receipt
+    return(results_dict, sorted_by_value)
+
+
+def get_avg_cups_sold_per_hour(hourcups_dict:dict) -> int:
+    """ get the average cups sold per hour from a given dict, which is the dataframe from either item1, item2, or bothitems - unordered """
+    # var to test if there is actually data, else we'll hit a ZeroDivisionError (which we could have just caught instead of if statement)
+    hc_dict_size = len(hourcups_dict.values()) # dict_size = longlong (its not even a long int but i couldn't help myself... im sorry)
+    # don't let something like a pesky zero division ruin everything (in case of no data)
+    if hc_dict_size > 0:
+        average_hourcups = sum(hourcups_dict.values()) / hc_dict_size
+    else:
+        average_hourcups = 0
+    # return the result
+    return(average_hourcups)
+
+
+def create_formatted_hourcup_string_list_with_ampm(hcd_sort_by_value:dict) -> list[str]:
+    """ create a list of formatted strings with times and cups sold, most importantly including am or pm suffix based on the given time """
+    # lambda function appends am or pm to string based on the time, apply func to sorted dictionary items using map, then convert map object to list 
+    sort_by_value_formatted_list = \
+        list(map(lambda x: (f"{x[0]}pm [{x[1]} cups sold]") if x[0] > 11 else (f"{x[0]}am [{x[1]} cups sold]"), hcd_sort_by_value.items()))
+    # return the result
+    return(sort_by_value_formatted_list)
+
+
+def get_worstbest_time_with_formattedstrings(hcd_sort_by_value:dict, hcd_sort_by_value_formatted:dict) -> tuple[int,int,str,str]:
+    """ get the worst and best performing times, note worst performer is the formatted string version e.g. 10am [109 Cups Sold] """
+    # try except covers case where there is no data in the dataframe (because there was no valid data to begin with)
+    try:
+        # list the keys (times, ordered) only, slice the first and last elements in the array (list) [start:stop:step]
+        worst_time, best_time = list(hcd_sort_by_value.keys())[::len(hcd_sort_by_value.keys())-1]
+        # convert them to ints (as due to the whole list sliceyness they were ofType numpy.int64)
+        worst_time, best_time = int(worst_time), int(best_time)
+        worst_performer, best_performer = hcd_sort_by_value_formatted[::len(hcd_sort_by_value_formatted)-1]
+    except ValueError:
+        # log it, and set the values to zeros
+        logger.error("Papa I caught an error! - no data in dataframe (create_hourcups_insights_data)")
+        worst_time, best_time, worst_performer, best_performer = 0,0,0,0
+    return(worst_time, best_time, worst_performer, best_performer)
+
+
+def get_dicts_for_above_below_avg_cups(hourcups_dict:dict, average_hourcups:int) -> tuple[dict, dict]:
+    """ returns two new dicts for the key/value pairs above and below the average sales per hour """
+    above_avg_hourcups = {}
+    under_avg_hourcups = {}
+    # loop the items and use simple if to decide whether the amount of cups is above or below the average sales per hour 
+    for hour, cups in hourcups_dict.items():
+            if cups >= average_hourcups:
+                above_avg_hourcups[hour] = int(cups)
+            else:
+                under_avg_hourcups[hour] = int(cups)
+    # return the results
+    return(above_avg_hourcups, under_avg_hourcups)
+
+
+# TODOASAP - note testing cache here
+# TODOASAP - also how about just dont run this, and other, functions if the df is empty duh
+@st.cache
+def create_hourcups_insights_data(hourcups_dict, hcd_sort_by_value):
+    """ calls the (so far) four functions that create the hourcups insights data for either item1, item2, or bothitems """
+    average_hourcups = get_avg_cups_sold_per_hour(hourcups_dict)
+    # note - hcd formatted list (10am [109 cups sold]...) is only used in here, but could be returned if you want to use it
+    hcd_sort_by_value_formatted_list = create_formatted_hourcup_string_list_with_ampm(hcd_sort_by_value)
+    worst_time, best_time, worst_performer, best_performer = get_worstbest_time_with_formattedstrings(hcd_sort_by_value, hcd_sort_by_value_formatted_list)
+    above_avg_hc, below_avg_hc = get_dicts_for_above_below_avg_cups(hourcups_dict, average_hourcups)
+    return(average_hourcups, worst_time, best_time, worst_performer, best_performer, above_avg_hc, below_avg_hc)
+
+
+def combine_both_items_data_lists_for_df(first_item_list:list, second_item_list:list): 
+    """ combined data from both items (1&2) to get generalised insights, used for creating df, is not the same as 'all' dates, both here means stores """ 
+    # copy first, as its a list - despite the lack of type hints :(
+    just_list_both_for_df = first_item_list.copy() 
+    # then extend
+    just_list_both_for_df.extend(second_item_list) 
+    # return the result
+    return(just_list_both_for_df)
+
+
+def extend_list_1_with_list_2(the_list_1:list[list], the_list_2:list[list]):
+    """ extended the first lists with the second lists for the final dataframe (since we only pass it one dataset) """
+    the_final_list = []
+    # zip the lists together to loop them
+    for list_1, list_2 in zip(the_list_1, the_list_2):
+        list_1.extend(list_2)
+        the_final_list.append(list_1)
+    return(the_final_list)
+
+
+def extend_all_lists(just_cupcount_list_x_all, just_hour_list_x_all, just_names_list_x_all, 
+                    just_cupcount_list_x_w0,just_cupcount_list_x_w1,just_cupcount_list_x_w2,just_cupcount_list_x_w3,just_cupcount_list_x_w4,just_cupcount_list_x_w5,
+                    just_hour_list_x_w0,just_hour_list_x_w1,just_hour_list_x_w2,just_hour_list_x_w3,just_hour_list_x_w4,just_hour_list_x_w5,
+                    just_names_list_x_w0,just_names_list_x_w1,just_names_list_x_w2,just_names_list_x_w3,just_names_list_x_w4,just_names_list_x_w5):
+    """ the 'all' lists are just the first tab that is the sum total of all the weeks, so extend all the week lists together to get that result """
+    # 'all dates' is just everything together so extend the 'all' lists with everything from the 'week_x' lists
+    cupcount_weeks_list = [just_cupcount_list_x_w0,just_cupcount_list_x_w1,just_cupcount_list_x_w2,just_cupcount_list_x_w3,just_cupcount_list_x_w4,just_cupcount_list_x_w5]
+    for cupcount_list in cupcount_weeks_list:    
+        just_cupcount_list_x_all.extend(cupcount_list)
+
+    justhour_weeks_list = [just_hour_list_x_w0,just_hour_list_x_w1,just_hour_list_x_w2,just_hour_list_x_w3,just_hour_list_x_w4,just_hour_list_x_w5]
+    for justhour_list in justhour_weeks_list:
+        just_hour_list_x_all.extend(justhour_list)
+
+    justnames_weeks_list = [just_names_list_x_w0,just_names_list_x_w1,just_names_list_x_w2,just_names_list_x_w3,just_names_list_x_w4,just_names_list_x_w5]
+    for justnames_list in justnames_weeks_list:
+        just_names_list_x_all.extend(justnames_list)
+
+    return((just_cupcount_list_x_all, just_hour_list_x_all, just_names_list_x_all))
+
+
+def create_dataframe_setup_chart(just_names_list_1_range, just_cupcount_list_1_range, just_hour_list_1_range):
+    """ create the dataframes and resulting altair chart data (barchart + text) for a given range and return the results for rendering """
+
+    # create the dataframe
+    sawce = create_hourcups_dataframe(just_names_list_1_range, just_cupcount_list_1_range, just_hour_list_1_range)
+
+    # setup barchart
+    bar_chart = alt.Chart(sawce).mark_bar().encode(
+        color="DrinkName:N",
+        x="sum(CupsSold):Q",
+        y="HourOfDay:N"
+    ).properties(height=300)
+
+    # setup text labels for barchart
+    chart_text = alt.Chart(sawce).mark_text(dx=-10, dy=3, color='white', fontSize=12, fontWeight=600).encode(
+        x=alt.X('sum(CupsSold):Q', stack='zero'),
+        y=alt.Y('HourOfDay:N'),
+        detail='DrinkName:N',
+        text=alt.Text('sum(CupsSold):Q', format='.0f')
+    )
+    # return the result
+    return((bar_chart, chart_text))
 
 
 # ---- MAIN WEB APP ----
@@ -314,14 +486,14 @@ def run():
     # portfolio/developer mode toggle
     with st.sidebar:
 
-        # TODO - add in dev mode things but heck just do code snippets or whatever forget echo as its pointless (unless absolutely necessary) 
+        # TODOASAP - dev mode code snippets in hmtl components
         dev_mode = st.checkbox(label="Portfolio Mode ", key="devmode-insights")
         if dev_mode:
-            WIDE_MODE_INFO = """
+            DEV_MODE_INFO = """
             Portfolio Mode Active\n
             Check out expanders to see live code blocks
             """
-            st.info(WIDE_MODE_INFO)
+            st.info(DEV_MODE_INFO)
 
         st.write("##")
         st.markdown("#### Advanced Mode")
@@ -334,7 +506,7 @@ def run():
     topcol1, topcol2 = st.columns([1,8])
     topcol2.markdown("# Insights Title")
     try:
-        # TODO - edit the image so is smaller (currently is 512x512)
+        # TODOASAP - edit the image so is smaller (currently is 512x512)
         topcol1.image("imgs/insight_chart.png", width=120)
     except:
         st.write("")
@@ -356,13 +528,13 @@ def run():
             st.session_state["last_active_date_tab"] = the_tab
 
 
-    # TODO 
-    # want image or whatever of the date on the right too and maybe since this is a change between tabs thing
-    # a button so you dont *have* to change to make the selection (make sure this is made clear to the user)
-    # the button will just run last active tab with the relevant parameters!
+    # TODOASAP 
+    # want image or whatever of the date on the right too and maybe since this is a change between tabs thing 
+    # DEFO WANT THE DATE/S DISPLAYED CLEARLY REGARDLESS (do this first ig and skip the images for now)
 
-    userSelectCol, _, storeImg1, storeImg2, storeImg3, storeImg4, storeImg5 = st.columns([4,1,1,1,1,1,1]) 
+    userSelectCol, _, storeImg1, storeImg2, storeImg3, storeImg4, storeImg5 = st.columns([5,1,1,1,1,1,1]) 
     with userSelectCol:
+
         # ---- STORE SELECT ----
         selected_stores_1 = st.multiselect("Choose The Store/s", options=base_stores_list, default=["Chesterfield"])
         
@@ -438,7 +610,7 @@ def run():
             end_of_week = get_from_db(f"SELECT DATE_ADD('{to_make_date}', INTERVAL 6 DAY);")
             return((to_make_date, end_of_week[0][0]))
 
-        # TODO 
+        # TODOASAP 
         # FOR IS LITERALLY THE SAME AS OPTION 3, IT JUST BECOMES AN AND STATEMENT 
         #   - unless ig the dates are next to each other but meh doesn't make enough diff so just do one way with AND
             
@@ -471,7 +643,7 @@ def run():
                     img_dict[store_name]["col"].image(img_dict[store_name]["off"])
 
 
-    # handle error in case the images can't be found, but this generally only happens when using backslash instead of forward slash so fixing that too
+    # handle error in case the images can't be found (tho most likely is due to backslash not forward slash so just fix that duh)
     try:
         print_on_off_stores(selected_stores_1, stores_img_dict)
     except FileNotFoundError:
@@ -488,25 +660,24 @@ def run():
     # weekBreakdownCol2.image(calendar_highlight)         
 
 
-
     # ---- DIVIDER ----
+    # i divide things
     st.write("---")
 
 
     # ---- THE COMPARISION CHARTS ---- 
 
-
-    # TODO 
-    # ALSO
-    # MAYBE FOR ADVANCED MODE HAVE INDIVIDUAL TOGGLES TO REMOVE THINGS OR ALWAYS USE MULTISELECT IDK!
-
-
     # ALTAIR CHART product sold by hour of day
     with st.container():
+
+        # title and column setup
         st.write(f"### :bulb: Insight - Compare Two Items") 
 
         # select any item from the store for comparison
         item1Col, itemInfoCol, item2Col = st.columns([2,1,2])
+
+
+        # ---- USER SELECTS ----
 
         with item1Col:
             store_selector_1 = st.selectbox(label=f"Which Store Do You Want To Choose An Item From?", key="store_sel_1", options=selected_stores_1, index=0, help="For more stores update the above multiselect")
@@ -533,8 +704,7 @@ def run():
             else:
                 st.warning("Try Advanced Mode!")
 
-
-        # ---- USER SELECTS ----
+        # log control flow
         logger.debug("Get list of flavours from the db, for the users selected item") # actually tuples not list but whatever
 
         with item1Col:
@@ -548,6 +718,15 @@ def run():
             final_item_flavours_list_2 = get_flavours_for_item_updated(selected_stores_2, item_selector_2)
             multi_flav_selector_2 = st.multiselect(label=f"Choose A Flavour For {item_selector_2}", key="multi_flav_select_2", options=final_item_flavours_list_2, default=final_item_flavours_list_2[0])
             multi_size_selector_2 = st.multiselect(label=f"Choose A Size For {item_selector_2}", key="multi_size_select_2", options=["Regular","Large"], default="Regular")
+
+        # because why not make clear to the user when you know they're trying to break stuff
+        if len(multi_flav_selector_1) == 0 or len(multi_flav_selector_2) == 0:
+            with st.sidebar:
+                JUDGING_MESSAGE = """You just gotta be awkward huh...\n
+                *judges you*
+                """
+                # is literally the only way to get multiline warning/error/info boxes
+                st.warning(JUDGING_MESSAGE)
 
 
         # ---- FLAVOUR & SIZE SUB-QUERY CREATION ----
@@ -564,15 +743,13 @@ def run():
         flavour_1_concat = decide_to_include_flavour(flavour_1_is_null)
         flavour_2_concat = decide_to_include_flavour(flavour_2_is_null)
 
-
-        # TODOASAP 
-        # HELLA TEMP AS THIS SHOULD NEVER HAVE CHANGED ANYWAY BUT MEH - DO NEED TO FIND / COVER THE ROOT CAUSE THO
+        # due to the way streamlit works with rerunning the entire app on update, occassional bugs slip in
+        # this covers the last active tab being reset to a less stable state, and forces it to the more stable 'between two dates' option
         if st.session_state["last_active_date_tab"] == 4:
             print(st.session_state["last_active_date_tab"])
             last_active_tab(2)
             selected_date = set_selected_date_from_last_active_tab(use_vs_selected_date_dict)
             selected_date = make_date_query(selected_date)
-
 
         # the key/int of the last active tab for deciding whether want results to have week based tab display
         active_tab_key = last_active_tab(want_return=True)
@@ -595,7 +772,6 @@ def run():
         # ---- CREATE AND PRINT ALTAIR CHART OF RESULTS ----
 
         # PORTFOLIO - ADD THIS STUFF
-        # TODO - QUICKLY SEE IF CAN FIX THE STRING THING BUT COULD LEAVE FOR NOW TBF
 
         if active_tab_key != 1:
             # get the needed date info (first valid date, date at end of first week, difference in days from start to end)
@@ -603,18 +779,16 @@ def run():
             # trim the strings to get the dates, start and end will change based on last tab but not the length
             true_start_date_str = (selected_date[10:20])
             true_end_date_str = (selected_date[27:37])
-
-            # quick debugging
-            print("selected_date", selected_date)
-            print("true_start_date_str", true_start_date_str)
-            print("true_end_date_str", true_end_date_str)
-            print(st.session_state["last_active_date_tab"])
-
             first_date_altair = datetime.datetime.strptime(true_start_date_str, '%Y-%m-%d')
             last_date_altair = datetime.datetime.strptime(true_end_date_str, '%Y-%m-%d')
 
-            print("first_date_altair", first_date_altair)
-            print("last_date_altair", last_date_altair)
+            # some logs for debugging this area, which can get sticky due to the large amount of data from different types
+            logger.debug("selected_date", selected_date)
+            logger.debug("true_start_date_str", true_start_date_str)
+            logger.debug("true_end_date_str", true_end_date_str)
+            logger.debug(st.session_state["last_active_date_tab"])
+            logger.debug("first_date_altair", first_date_altair)
+            logger.debug("last_date_altair", last_date_altair)
 
             end_of_first_week_date_altair = first_date_altair + datetime.timedelta(days=7)
             end_of_first_week_date_altair = end_of_first_week_date_altair.date()
@@ -641,7 +815,7 @@ def run():
 
         #TODOASAP - MULTITHREAD THIS, ALSO WHY ITS BEST IN FUNCTION CHUNKS IG
 
-        # ----DECLARING ALL AND WEEK_X LIST VARIABLES ----
+        # ---- declaring vars - week_x and all lists ----
 
         # empty lists used for transforming db data for df, 'all' covers all dates, the rest is week by week 
         # [item 1 / left]
@@ -672,7 +846,8 @@ def run():
             just_hour_list_1_all.extend(just_hour_list_2_all)
             just_names_list_1_all.extend(just_names_list_2_all)         
 
-        # END SINGLE DAY
+        # END SINGLE DAY (hilariously simple by comparison to below)
+
 
         # ---- BETWEEN 2 DAYS [so far only this - active date tab = 2]----
 
@@ -748,6 +923,8 @@ def run():
                     just_names_list_x_w0, just_names_list_x_w1, just_names_list_x_w2, just_names_list_x_w3, just_names_list_x_w4, just_names_list_x_w5))
                 
 
+        # TODOASAP - smells like its time to learn multi-threading!
+
         # ---- FOR ITEM 1 / LEFT SIDE ---- 
         # run the function
         result_weeks_date_tuple = convert_raw_data_to_weeks(hour_cups_data_1_adv, just_cupcount_list_1_w0, just_cupcount_list_1_w1, just_cupcount_list_1_w2, just_cupcount_list_1_w3, just_cupcount_list_1_w4, just_cupcount_list_1_w5,
@@ -771,27 +948,6 @@ def run():
         just_hour_list_2_w0, just_hour_list_2_w1, just_hour_list_2_w2, just_hour_list_2_w3, just_hour_list_2_w4, just_hour_list_2_w5 = result_weeks_date_tuple[6], result_weeks_date_tuple[7], result_weeks_date_tuple[8], result_weeks_date_tuple[9], result_weeks_date_tuple[10], result_weeks_date_tuple[11]
         just_names_list_2_w0, just_names_list_2_w1, just_names_list_2_w2, just_names_list_2_w3, just_names_list_2_w4, just_names_list_2_w5 = result_weeks_date_tuple[12], result_weeks_date_tuple[13], result_weeks_date_tuple[14], result_weeks_date_tuple[15], result_weeks_date_tuple[16], result_weeks_date_tuple[17]
 
-        
-        def extend_all_lists(just_cupcount_list_x_all, just_hour_list_x_all, just_names_list_x_all, 
-                            just_cupcount_list_x_w0,just_cupcount_list_x_w1,just_cupcount_list_x_w2,just_cupcount_list_x_w3,just_cupcount_list_x_w4,just_cupcount_list_x_w5,
-                            just_hour_list_x_w0,just_hour_list_x_w1,just_hour_list_x_w2,just_hour_list_x_w3,just_hour_list_x_w4,just_hour_list_x_w5,
-                            just_names_list_x_w0,just_names_list_x_w1,just_names_list_x_w2,just_names_list_x_w3,just_names_list_x_w4,just_names_list_x_w5):
-            """ the 'all' lists are just the first tab that is the sum total of all the weeks, so extend all the week lists together to get that result """
-            # 'all dates' is just everything together so extend the 'all' lists with everything from the 'week_x' lists
-            cupcount_weeks_list = [just_cupcount_list_x_w0,just_cupcount_list_x_w1,just_cupcount_list_x_w2,just_cupcount_list_x_w3,just_cupcount_list_x_w4,just_cupcount_list_x_w5]
-            for cupcount_list in cupcount_weeks_list:    
-                just_cupcount_list_x_all.extend(cupcount_list)
-
-            justhour_weeks_list = [just_hour_list_x_w0,just_hour_list_x_w1,just_hour_list_x_w2,just_hour_list_x_w3,just_hour_list_x_w4,just_hour_list_x_w5]
-            for justhour_list in justhour_weeks_list:
-                just_hour_list_x_all.extend(justhour_list)
-
-            justnames_weeks_list = [just_names_list_x_w0,just_names_list_x_w1,just_names_list_x_w2,just_names_list_x_w3,just_names_list_x_w4,just_names_list_x_w5]
-            for justnames_list in justnames_weeks_list:
-                just_names_list_x_all.extend(justnames_list)
-
-            return((just_cupcount_list_x_all, just_hour_list_x_all, just_names_list_x_all))
-
 
         # ---- FOR ITEM 1 / LEFT SIDE ---- 
         result_all_1 = extend_all_lists(just_cupcount_list_1_all, just_hour_list_1_all, just_names_list_1_all, 
@@ -806,6 +962,7 @@ def run():
         just_hours_1_for_df = just_hour_list_1_all.copy()
         just_names_1_for_df = just_names_list_1_all.copy()
 
+
         # ---- FOR ITEM 2 / RIGHT SIDE ---- 
         result_all_2 = extend_all_lists(just_cupcount_list_2_all, just_hour_list_2_all, just_names_list_2_all, 
                         just_cupcount_list_2_w0,just_cupcount_list_2_w1,just_cupcount_list_2_w2,just_cupcount_list_2_w3,just_cupcount_list_2_w4,just_cupcount_list_2_w5,
@@ -819,57 +976,34 @@ def run():
         just_hours_2_for_df = just_hour_list_2_all.copy()
         just_names_2_for_df = just_names_list_2_all.copy()        
 
+
+        # ---- EXTEND LIST 1 WITH LIST 2 ----
         # organise for passing to the extend function
-        all_list_1 = [just_names_list_1_all, just_cupcount_list_1_all, just_hour_list_1_all]
-        all_list_2 = [just_names_list_2_all, just_cupcount_list_2_all, just_hour_list_2_all]
-        w0_list_1 = [just_names_list_1_w0, just_cupcount_list_1_w0, just_hour_list_1_w0]
-        w0_list_2 = [just_names_list_2_w0, just_cupcount_list_2_w0, just_hour_list_2_w0]     
+        all_list_1, all_list_2 = [just_names_list_1_all, just_cupcount_list_1_all, just_hour_list_1_all], [just_names_list_2_all, just_cupcount_list_2_all, just_hour_list_2_all]
+        w0_list_1, w0_list_2 = [just_names_list_1_w0, just_cupcount_list_1_w0, just_hour_list_1_w0], [just_names_list_2_w0, just_cupcount_list_2_w0, just_hour_list_2_w0] 
+        w1_list_1, w1_list_2 = [just_names_list_1_w1, just_cupcount_list_1_w1, just_hour_list_1_w1], [just_names_list_2_w1, just_cupcount_list_2_w1, just_hour_list_2_w1]
+        w2_list_1, w2_list_2 = [just_names_list_1_w2, just_cupcount_list_1_w2, just_hour_list_1_w2], [just_names_list_2_w2, just_cupcount_list_2_w2, just_hour_list_2_w2]
+        w3_list_1, w3_list_2 = [just_names_list_1_w3, just_cupcount_list_1_w3, just_hour_list_1_w3], [just_names_list_2_w3, just_cupcount_list_2_w3, just_hour_list_2_w3]    
+        w4_list_1, w4_list_2 = [just_names_list_1_w4, just_cupcount_list_1_w4, just_hour_list_1_w4], [just_names_list_2_w4, just_cupcount_list_2_w4, just_hour_list_2_w4]  
+        w5_list_1, w5_list_2 = [just_names_list_1_w5, just_cupcount_list_1_w5, just_hour_list_1_w5], [just_names_list_2_w5, just_cupcount_list_2_w5, just_hour_list_2_w5]   
 
-
-        def extend_list_1_with_list_2(the_list_1:list[list], the_list_2:list[list]):
-            """ write me - is for df """
-            # extended the first lists with the second lists for the final dataframe (since we only pass it one dataset)
-            the_final_list = []
-            for list_1, list_2 in zip(the_list_1, the_list_2):
-                list_1.extend(list_2)
-                the_final_list.append(list_1)
-            return(the_final_list)
-
-
-        # call the function
+        # call the extend function
         final_all_list_1 = extend_list_1_with_list_2(all_list_1, all_list_2)
         final_w0_list_1 = extend_list_1_with_list_2(w0_list_1, w0_list_2)
+        final_w1_list_1 = extend_list_1_with_list_2(w1_list_1, w1_list_2)
+        final_w2_list_1 = extend_list_1_with_list_2(w2_list_1, w2_list_2)
+        final_w3_list_1 = extend_list_1_with_list_2(w3_list_1, w3_list_2)
+        final_w4_list_1 = extend_list_1_with_list_2(w4_list_1, w4_list_2)
+        final_w5_list_1 = extend_list_1_with_list_2(w5_list_1, w5_list_2)
         # unpack the results       
         just_names_list_1_all, just_cupcount_list_1_all, just_hour_list_1_all = final_all_list_1[0], final_all_list_1[1], final_all_list_1[2]
         just_names_list_1_w0, just_cupcount_list_1_w0, just_hour_list_1_w0 = final_w0_list_1[0], final_w0_list_1[1], final_w0_list_1[2]
+        just_names_list_1_w1, just_cupcount_list_1_w1, just_hour_list_1_w1 = final_w1_list_1[0], final_w1_list_1[1], final_w1_list_1[2]
+        just_names_list_1_w2, just_cupcount_list_1_w2, just_hour_list_1_w2 = final_w2_list_1[0], final_w2_list_1[1], final_w2_list_1[2]
+        just_names_list_1_w3, just_cupcount_list_1_w3, just_hour_list_1_w3 = final_w3_list_1[0], final_w3_list_1[1], final_w3_list_1[2]
+        just_names_list_1_w4, just_cupcount_list_1_w4, just_hour_list_1_w4 = final_w4_list_1[0], final_w4_list_1[1], final_w4_list_1[2]
+        just_names_list_1_w5, just_cupcount_list_1_w5, just_hour_list_1_w5 = final_w5_list_1[0], final_w5_list_1[1], final_w5_list_1[2]
 
-
-        def create_dataframe_setup_chart(just_names_list_1_range, just_cupcount_list_1_range, just_hour_list_1_range):
-            """ create the dataframes and resulting altair chart data (barchart + text) for a given range and return the results for rendering """
-
-            # create the dataframe
-            sawce = pd.DataFrame({
-            "DrinkName": just_names_list_1_range,
-            "CupsSold":  just_cupcount_list_1_range,
-            "HourOfDay": just_hour_list_1_range
-            })
-
-            # setup barchart
-            bar_chart = alt.Chart(sawce).mark_bar().encode(
-                color="DrinkName:N",
-                x="sum(CupsSold):Q",
-                y="HourOfDay:N"
-            ).properties(height=300)
-
-            # setup text labels for barchart
-            chart_text = alt.Chart(sawce).mark_text(dx=-10, dy=3, color='white', fontSize=12, fontWeight=600).encode(
-                x=alt.X('sum(CupsSold):Q', stack='zero'),
-                y=alt.Y('HourOfDay:N'),
-                detail='DrinkName:N',
-                text=alt.Text('sum(CupsSold):Q', format='.0f')
-            )
-
-            return((bar_chart, chart_text))
 
 
         # TODOASAP - ADD SUBTITLE N SHIT
@@ -890,7 +1024,6 @@ def run():
             date_as_word = "01/01/2022"
 
         # TODOASAP - MUST MUST MUST HIGHLIGHT THE DATES AS TABS IS WILDIN BOI
-
         chartTab_dict = {0:(chartTab0, f"{'All Dates' if weeks_between_dates != 0 else date_as_word}", (just_names_list_1_all, just_cupcount_list_1_all, just_hour_list_1_all)),
                             1:(chartTab1, "First Week", (just_names_list_1_w0, just_cupcount_list_1_w0, just_hour_list_1_w0)),
                             2:(chartTab2, "Some Title", (just_names_list_1_w1, just_cupcount_list_1_w1, just_hour_list_1_w1)),
@@ -900,8 +1033,8 @@ def run():
                             6:(chartTab6, "Some Title", (just_names_list_1_w5, just_cupcount_list_1_w5, just_hour_list_1_w5))
                         }
 
+        # procedurally generate the charts based on the dynamic datasets
         for i in range(0,7):
-
             # randomly changed to camelcase but meh
             # better title names as this is the tab name too? (also subtitles pls) defo include the actual dates DUHHHHH
             theTab, theTitle, theDataset = chartTab_dict[i][0], chartTab_dict[i][1], chartTab_dict[i][2]
@@ -913,6 +1046,7 @@ def run():
                 st.markdown(f"#### {theTitle}")
                 st.altair_chart(barchart + barchart_text, use_container_width=True)
 
+
         # TODOASAP
         # HAVE REMOVED THE ONLY ONE DATE TRY EXCEPT INDEXERROR FOR NOW - might not need anymore btw but what if not data for a single day (find out duh)
         # JUST GENERALLY BE SURE TO COVER WITH TRY EXCEPTS WHERE NECESSARY WHEN THERE IS NO DATA + WHATEVER ELSE
@@ -920,136 +1054,157 @@ def run():
         # ---- END ALTAIR CHART - PHEW ----
 
 
-
-
-        # TODOASAP - SECTION INTO FUNCTIONS?!
-
         # ---- START INSIGHTS ----
-        # gain insights by running some indepth calculations
-        
-        # recreate the dataframe that we used in the 'all' dataset - but only for item, it is not the extended version (as insights duh, need em seperate)
-        df_sawce_1 = pd.DataFrame({
-        "DrinkName": just_names_1_for_df,
-        "CupsSold": just_cupcount_1_for_df,
-        "HourOfDay": just_hours_1_for_df
-        })
-
-        # recreate the dataframe that we used in the 'all' dataset
-        df_sawce_2 = pd.DataFrame({
-        "DrinkName": just_names_2_for_df,
-        "CupsSold": just_cupcount_2_for_df,
-        "HourOfDay": just_hours_2_for_df
-        })
-
-
-        # get unique values in HourOfDay column to loop (returns array object so convert to list), then sort/order it
-        uniqueCols = sorted(list(df_sawce_1['HourOfDay'].unique()))
-
-        # get sum of cupsSold column based on condition (HourOfDay == x), added to dictionary with key = hour, value = sum of cups sold for hour
-        results_dict = {}
-        for value in uniqueCols:
-            cupForHour = df_sawce_1.loc[df_sawce_1['HourOfDay'] == value, 'CupsSold'].sum()
-            results_dict[value] = cupForHour
-
-        # don't let something like a pesky zero division ruin everything (in case of no data)
-        try:
-            average_hourcups = sum(results_dict.values()) / len(results_dict.values())
-        except ZeroDivisionError:
-            average_hourcups = 0
-
-        # create a new dictionary from hour/cups dictionary but sorted
-        sort_by_value = dict(sorted(results_dict.items(), key=lambda x: x[1]))   
-        # create a list of formatted strings with times and cups sold including am or pm based on the time
-        sort_by_value_formatted_list = list(map(lambda x: (f"{x[0]}pm [{x[1]} cups sold]") if x[0] > 11 else (f"{x[0]}am [{x[1]} cups sold]"), sort_by_value.items()))
-
-        try:
-            # list the keys (times, ordered) only, slice the first and last elements in the array (list) [start:stop:step]
-            worst_time, best_time = list(sort_by_value.keys())[::len(sort_by_value.keys())-1]
-            worst_performer, best_performer = sort_by_value_formatted_list[::len(sort_by_value_formatted_list)-1]
-        except ValueError:
-            worst_time, best_time, worst_performer, best_performer = 0,0,0,0
-
-        # hour and amount of cups sold, above/under the average sales per hour
-        above_avg_hourcups = {}
-        under_avg_hourcups = {}
-        for hour, cups in results_dict.items():
-                if cups >= average_hourcups:
-                    above_avg_hourcups[hour] = cups
-                else:
-                    under_avg_hourcups[hour] = cups
-
-
-
-        # TO ADD HERE
-        #   - granualar into the actual products
-        #   - how much it overperformed by
-        #   - specifics if multiple sizes of same item 100!
-        #   - specifics if multiple flavours of same item (maybe tho)
-        #   - actually wanna calculate revenue here DUHHHH # TODOASAP <<<<<<<<<<<<<< (this is where like an area chart would be good btw!)
-
-        
-        METRIC_ERROR_MSG = """
-            Wild MISSINGNO Appeared!\n
-            No Data for {} on {}\n
-            ({})
-            """
-
-        INSIGHT_TIP_1 = f"""
-            ###### Sales Analysis\n
-            Average Sales Per Hour: {average_hourcups:.0f} cups sold\n
-            Hours Above Average Sales: {", ".join(list(map(lambda x : f"{x}pm" if x > 11 else f"{x}am" , list(above_avg_hourcups.keys()))))}\n
-            - get staff 
-            Hours Under Average Sales: {", ".join(list(map(lambda x : f"{x}pm" if x > 11 else f"{x}am" , list(under_avg_hourcups.keys()))))}\n
-            - consider offers
-            """
-
-        # TODOASAP - TEXT YO!
-
-        # rename these
-        insightTab1, insightTab2, insightTab3 = st.tabs(["Core Insights", "Tasty Insights", "Anutha Insights Title"])
-        with insightTab1:
-            st.markdown("##### Insights")
-            st.write("Your personal insights dynamically created from the data you've selected")
-            st.markdown(f"###### Worst Performing Hour : {worst_performer}")
-            st.write(f"At {worst_time}{'pm' if worst_time > 11 else 'am'} consider offers + less staff")   
-            st.markdown(f"###### Best Performing Hour: {best_performer}")  
-            st.write(f"At {best_time}{'pm' if best_time > 11 else 'am'} ensure staff numbers with strong workers at this time to maximise sales")
-            st.markdown(INSIGHT_TIP_1)
-
-            #insightCol1.image("imgs/insight.png")  # width=140
-            # formatting for img if its a london store
-            #current_store = str(store_selector).lower() # selected_stores_1
-            #if "london" in current_store:
-            #    current_store = "-".join(current_store)
-            #insightCol1.image(f"imgs/cshop-small-{current_store}.png") # width=140
-
-
-        with insightTab2:
-
-            my_hungry_ass, cooling_window = st.columns(2)
-
-            with cooling_window:
-                # TODOASAP - OWN FUNCTION DUHHH!
-                # ITEM 1 - UNORDERED
-                # prepare the dataframe from the amount of cups (item 1) sold per hour
-                pie_sawce = pd.DataFrame({"values": results_dict.values(), "hours":results_dict.keys()}) # mmmmm pie sauce
-                # prepare the pie (gas mark 5, 25 minutes)
-                pie_base = alt.Chart(pie_sawce).encode(
-                    theta=alt.Theta("values:Q", stack=True),
-                    radius=alt.Radius("values", scale=alt.Scale(type="sqrt", zero=True, rangeMin=20)),
-                    color="hours:N")
-                # render the pie
-                pie_crust = pie_base.mark_arc(innerRadius=20, stroke="#fff") # the actual chart
-                pie_decotation = pie_base.mark_text(radiusOffset=10).encode(text="values:Q") # the text... i get bored sometimes
-                st.altair_chart(pie_crust + pie_decotation, use_container_width=True)
-
-
-            # CONSIDER A BUMP CHART IDK - GOOD VISUAL TBF!
-            # https://altair-viz.github.io/gallery/bump_chart.html
+        # gain insights by running some indepth calculations and displaying info back to user using tabs
             
+        # create a dataset of item 1 and 2 combined to use as a dataframe
+        just_names_both_for_df = combine_both_items_data_lists_for_df(just_names_1_for_df, just_names_2_for_df)
+        just_cupcount_both_for_df = combine_both_items_data_lists_for_df(just_cupcount_1_for_df, just_cupcount_2_for_df)
+        just_hours_both_for_df = combine_both_items_data_lists_for_df(just_hours_1_for_df, just_hours_2_for_df)
+
+        # create the needed dataframes, for item 1, item 2, and the comination of both
+        df_sawce_1 = create_hourcups_dataframe(just_names_1_for_df, just_cupcount_1_for_df, just_hours_1_for_df)
+        df_sawce_2 = create_hourcups_dataframe(just_names_2_for_df, just_cupcount_2_for_df, just_hours_2_for_df)
+        df_sawce_both = create_hourcups_dataframe(just_names_both_for_df, just_cupcount_both_for_df, just_hours_both_for_df)
+
+        # for item 1
+        # create hour vs cups sold dictionaries used for insights 
+        hourcups_dict_1, hcd_sort_by_value_1 = create_two_simple_cups_for_hour_dict(df_sawce_1)
+        # then get the hourcups insights data
+        average_hourcups_1, worst_time_1, best_time_1, worst_performer_1, best_performer_1,\
+            above_avg_hc_1, below_avg_hc_1 = create_hourcups_insights_data(hourcups_dict_1, hcd_sort_by_value_1)
+        
+        # for item 2
+        # create hour vs cups sold dictionaries used for insights 
+        hourcups_dict_2, hcd_sort_by_value_2 = create_two_simple_cups_for_hour_dict(df_sawce_2)
+        # then get the hourcups insights data
+        average_hourcups_2, worst_time_2, best_time_2, worst_performer_2, best_performer_2,\
+            above_avg_hc_2, below_avg_hc_2 = create_hourcups_insights_data(hourcups_dict_2, hcd_sort_by_value_2)
+
+        # for both items together (sum of compared hourcups per hour)
+        # create hour vs cups sold dictionaries used for insights 
+        hourcups_dict_both, hcd_sort_by_value_both = create_two_simple_cups_for_hour_dict(df_sawce_both)
+        # then get the hourcups insights data
+        average_hourcups_both, worst_time_both, best_time_both, worst_performer_both, best_performer_both,\
+            above_avg_hc_both, below_avg_hc_both = create_hourcups_insights_data(hourcups_dict_both, hcd_sort_by_value_both)
+
+        # ---- END INSIGHT CALCULATIONS (mostly) ----
+        
+
+
+
+
+        # TODOASAP - OBVIOUSLY MOVE THIS, BUT SINCE ITS NOT DONE LEAVING HERE ABOVE FOR EASY EDITING
+        def fill_sublevel_tabs_with_insights(worst_performer, worst_time, best_performer, best_time, average_hourcups, above_avg_hc, below_avg_hc, hourcups_dict):
+            """ programmatically fill subtabs with insights for item 1, 2, or both """
+
+            # yes the tabs actually need to be inside the function for it to work 
+            #   - can't be passed by reference - though maybe could be passed by value, whatever it works fine like this
+            # obviously rename these tabs, add subtitles and explanation text (be succinct tho ffs!) # TODOASAP
+            insightTab1, insightTab2, insightTab3 = st.tabs(["Core Insights", "Detailed Insights", "More Insights"])
             
+            # ---- CORE INSIGHTS - CARDS ----
+            with insightTab1:
+                stc.html(FOUR_CARD_INFO.format(), height=1500)
+            
+            # ---- INSIGHT DETAILS - TEXT ----
+            with insightTab2:
+                # see old code if you want the store image back, i mean or just do it urself its not hard duhhh
+                st.markdown("##### Insights")
+                st.write("Your personal insights dynamically created from the data you've selected")
+                st.markdown(f"###### Worst Performing Hour : {worst_performer}")
+                st.write(f"At {worst_time}{'pm' if worst_time > 11 else 'am'} consider offers + less staff")   
+                st.markdown(f"###### Best Performing Hour: {best_performer}")  
+                st.write(f"At {best_time}{'pm' if best_time > 11 else 'am'} ensure staff numbers with strong workers at this time to maximise sales")
+                st.write("")
+                st.markdown(f"Average Sales Per Hour: {average_hourcups:.0f} cups sold")
+                st.write(f"Hours Above Average Sales: {', '.join(list(map(lambda x : f'{x}pm' if x > 11 else f'{x}am' , list(above_avg_hc.keys()))))}")
+                st.write("Actionable Insight - Get more staff for these hours")
+                st.write(f"Hours Under Average Sales: {', '.join(list(map(lambda x : f'{x}pm' if x > 11 else f'{x}am' , list(below_avg_hc.keys()))))}")
+                st.write("Actionable Insight - Consider running product offers or discounts during these hours")
+
+            # ---- MORE INSIGHTS - CHART/S ----
+            with insightTab3:
+                # i got a bit too wrapped up in the whole pie thing, mb
+                my_hungry_ass, cooling_window = st.columns(2)
+
+                with cooling_window:
+                    # prepare the dataframe from the amount of cups (item 1) sold per hour
+                    pie_sawce = pd.DataFrame({"values": hourcups_dict.values(), "hours":hourcups_dict.keys()}) # mmmmm pie sauce
+                    # prepare the pie (gas mark 5, 25 minutes)
+                    pie_base = alt.Chart(pie_sawce).encode(
+                        theta=alt.Theta("values:Q", stack=True),
+                        radius=alt.Radius("values", scale=alt.Scale(type="sqrt", zero=True, rangeMin=20)),
+                        color="hours:N")
+                    # render the pie
+                    pie_crust = pie_base.mark_arc(innerRadius=20, stroke="#fff") # the actual chart
+                    pie_decotation = pie_base.mark_text(radiusOffset=10).encode(text="values:Q") # the text... i get bored sometimes
+                    st.altair_chart(pie_crust + pie_decotation, use_container_width=True)   
+        # END FUNCTION
+
+
+        # ---- DISPLAY INSIGHTS PROGRAMATICALLY ----
+    
+        insightBothItemsTab, insightItem1Tab, insightItem2Tab = st.tabs(["Insights - Both Items", f"1.{item_selector_1}", f"2.{item_selector_2}"])
+        
+        with insightBothItemsTab:
+            st.markdown("*Note - Currently Insights are only for the full date range, not week by week*")
+            fill_sublevel_tabs_with_insights(worst_performer_both, worst_time_both, best_performer_both, best_time_both,\
+                                        average_hourcups_both, above_avg_hc_both, below_avg_hc_both, hourcups_dict_both)
+
+        with insightItem1Tab:
+            st.markdown("*Note - Currently Insights are only for the full date range, not week by week*")
+            fill_sublevel_tabs_with_insights(worst_performer_1, worst_time_1, best_performer_1, best_time_1,\
+                                        average_hourcups_1, above_avg_hc_1, below_avg_hc_1, hourcups_dict_1)
+
+        with insightItem2Tab:
+            st.markdown("*Note - Currently Insights are only for the full date range, not week by week*")
+            fill_sublevel_tabs_with_insights(worst_performer_2, worst_time_2, best_performer_2, best_time_2,\
+                                        average_hourcups_2, above_avg_hc_2, below_avg_hc_2, hourcups_dict_2)
+        
+        
+
+        
+        
+        
+        
+        
+
+
+
+
+
+
+
+
 
 # OK SO NEXT/RN
+
+# do tabs for item 1, item 2 and both and get them working with the respective data (only all for now, not weeks)
+
+# then get the initial card layout thing done and dusted (hella basic, will improve shortly)
+
+# then do a tidbit more on insights here
+# - overperformed by how much
+# - if multiple sizes of same item get sumnt regardless of how basic
+# - calculate actual revenue duh, use a diff type of chart too
+#   - consider bump chart, maybe not for here tbf actually https://altair-viz.github.io/gallery/bump_chart.html
+
+# then fully finish up the actual insights bit - have explanation text and see image on tablet for help btw
+
+# then
+# get dates working
+# then do portfolio mode a bit
+
+# then (????) do new page - all store products with dates (basically copy just no long user input stuff)
+# and do insights on that
+# if you want anything compare wise just to straight up 2 stores
+# note charts n shit will be different but this is true/better insights
+
+# then once 2nd page is done LEGIT do other small project ideas
+# also be sure to clean up fully, even maybe with a cleaned version and a working (on) version
+# - obvs need portfolio mode too!
+
 
 
 # - actual fucking insights
@@ -1078,12 +1233,14 @@ def run():
 # - also things like github/website image thing btw
 # - also check history to find that kid that had the exact same condition as me as can't remember what else he posted
 
-
-
 # NO CAP, ONCE THIS INSIGHTS IS DONE MOVE ON TO OTHER (QUICKER PROJECTS LIKE 2 IDEAS AM JUST GUNA COPY AND CANCER TING)
 # - one was the map idea (best suited area for you, could add in whatever user selects I want tbh but house price and like council tax, average shop sumnt is good start)
 # - other was skal.es week time thing
 # - obvs my other 2 projects but really just the new atmoic which is 80HD, focus on just one thing ffs get that done and live with user login and db stuff then and only then move on
+
+# TODOASAP
+# when doing github recording and todo notes dont forget to record functionality from previous versions of this and include it in this readme
+# even tho will be in other repos, as those repos probably wont be seen
 
 
 # ---- DRIVER ----
@@ -1091,6 +1248,7 @@ if __name__ == "__main__":
     try:
         run()
     # if errors due to connection, wipe the entire cache (which is the issue, the cached connection), then user rerun fixes issue
+    # note have removed the singleton from the connection which seems to resolve this but leaving the error handling anyway since why not
     except mysql.connector.errors.OperationalError as operr:
         # log error messages
         logger.error("ERROR! - (╯°□°）╯︵ ┻━┻")
@@ -1099,7 +1257,7 @@ if __name__ == "__main__":
         # wipe the cache thoroughly
         st.experimental_memo.clear()
         st.experimental_singleton.clear()
-        # display info to the user
+        # display error info amd resolution (press button) to the user
         ERROR_MSG_1 = """(╯°□°）╯︵ ┻━┻\n
         Critical Error Averted\n
         It's A DB Connection Bug [not a duplicate error, silly streamlit]\n
@@ -1109,14 +1267,15 @@ if __name__ == "__main__":
         st.sidebar.warning("Push The Button To Re-Run")
         st.sidebar.button("ReRun App", key="pushme1")
         conn = db.init_connection()
-        run()
+        #run()
         #legacy_caching.clear_cache()
         #st.experimental_rerun
         #raise RerunException(run)
         
     except DuplicateWidgetID as dupwid:
         logger.error("ERROR! - (╯°□°）╯︵ ┻━┻")
-        logger.info("Isn't Actually A Duplicate Error Btw")
+        logger.error("DuplicateWidgetID")
+        logger.info("This literally has never been an actual duplicate error btw")
         logger.info(dupwid)
         
 
