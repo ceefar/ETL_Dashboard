@@ -386,10 +386,9 @@ def get_dicts_for_above_below_avg_cups(hourcups_dict:dict, average_hourcups:int)
     return(above_avg_hourcups, under_avg_hourcups)
 
 
-# TODOASAP - note testing cache here
+
 # TODOASAP - TYPE HINTS HERE PLS (ik its long but pleeeeease)
 # TODOASAP - also how about just dont run this, and other, functions if the df is empty duh
-@st.cache
 def create_hourcups_insights_data(hourcups_dict, hcd_sort_by_value):
     """ calls the (so far) four functions that create the hourcups insights data for either item1, item2, or bothitems """
     average_hourcups = get_avg_cups_sold_per_hour(hourcups_dict)
