@@ -143,7 +143,14 @@ color: #545d7a;
     10 Rules of Dashboard Design
 </h4>
 <p>
-    Dashboard Design Guidelines
+    Lorem ipsum dolor sit amet consectetur adipisicing elit. Maxime mollitia,
+molestiae quas vel sint commodi repudiandae consequuntur voluptatum laborum
+numquam blanditiis harum quisquam eius sed odit fugiat iusto fuga praesentium
+optio, eaque rerum! Provident similique accusantium nemo autem. Veritatis
+obcaecati tenetur iure eius earum ut molestias architecto voluptate aliquam
+nihil, eveniet aliquid culpa officia aut! Impedit sit sunt quaerat, odit,
+tenetur error, harum nesciunt ipsum debitis quas aliquid. Reprehenderit,
+quia. Quo neque error repudiandae fuga?
 </p>
 <div class="user">
     <img src="https://studyinbaltics.ee/wp-content/uploads/2020/03/3799Ffxy.jpg" alt="user" />
@@ -190,6 +197,7 @@ color: hsl(228, 45%, 44%);
 h1:first-of-type {{
 font-weight: var(--weight1);
 color: var(--varyDarkBlue);
+margin-bottom:5px;
 }}
 h1:last-of-type {{
 color: var(--varyDarkBlue);
@@ -289,34 +297,35 @@ rel="stylesheet">
 
 <body>
 <div class="header">
-<h1>Your Insights, in a glance</h1>
+<h1><b>Your Insights, in a glance</b></h1>
+<p style="margin-bottom:15px"><b><span style="color:#555555;">{0}</span></b></p>
 
-<p>This easy to digest overview showcases a snapshot of the insights from the current data, use the tabs to see more </p>
+<p>Take action without the effort with this easy to digest snapshot which showcases key insights from the data you've selected, don't forget to hit the tabs to discover more</p>
 </div>
 <div class="row1-container">
 <div class="box box-down cyan">
-<h2>Supervisor</h2>
-<p>Monitors activity to identify project roadblocks</p>
-<img src="https://assets.codepen.io/2301174/icon-supervisor.svg" alt="">
+<h2>{1}<br>{2} crushing it!</h2>
+<p>{3}x over the standard deviation in average product sales per hour</p>
+<img src="https://thehardgainerbible.com/wp-content/uploads/2022/07/hot-sale_64.png" alt=""> 
 </div>
 
 <div class="box red">
-<h2>Team Builder</h2>
-<p>Scans our talent network to create the optimal team for your project</p>
-<img src="https://assets.codepen.io/2301174/icon-team-builder.svg" alt="">
+<h2>{6} {8} The Money Makers</h2>
+<p>These hours drastically outperformed the average hourly sales by {7} (volume)... </p>
+<img src="https://thehardgainerbible.com/wp-content/uploads/2022/07/increase_64.png" alt="">
 </div>
 
 <div class="box box-down blue">
-<h2>Calculator</h2>
-<p>Uses data from past projects to provide better delivery estimates</p>
-<img src="https://assets.codepen.io/2301174/icon-calculator.svg" alt="">
+<h2>{9} Sales Per Hour</h2>
+<p>I'd raise a cup to that</p>
+<img src="https://thehardgainerbible.com/wp-content/uploads/2022/07/sales_64.png" alt="">
 </div>
 </div>
 <div class="row2-container">
 <div class="box orange">
-<h2>Karma</h2>
-<p>Regularly evaluates our talent to ensure quality</p>
-<img src="https://assets.codepen.io/2301174/icon-karma.svg" alt="">
+<h2>{4} cups sold</h2>
+<p>For a total revenue of ${5:.2f}</p>
+<img src="https://thehardgainerbible.com/wp-content/uploads/2022/07/coffee-cup_64.png" alt="">
 </div>
 </div>
 </body>
@@ -324,3 +333,29 @@ rel="stylesheet">
 """
 #stc.html(TEST_CARD_HTML_2.format(), height=1500)
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# <h2>{0} Is Highly Popular</h2>
+# <p>At {0} we're seeing {1}x the standard deviation in sales for {2}</p>
+# are all performing strongly, and are over the average hourly sales<br>- Make sure dedicated staff are available during these hours
+# ACTIONABLE INSIGHT TO BE SOMETHING LIKE A 5P INCREASE ON THIS ITEM WILL BE ENTIRE UNNOTICED BY CUSTOMERS BUT WILL GENERATE SIGNIFICANT REVENUE???? (sim)
+# INSIGHTS LIKE - consider bundling this items a these times for upsell potential
+
+
+
+# https://assets.codepen.io/2301174/icon-supervisor.svg
