@@ -53,9 +53,9 @@ dashboard stuff
 
 
 
-
 # FOR THURSDAY - TECHNICAL TASK START
 ######################################
+# PORTFOLIO MODE FIRST FFS! - AND FINISH ANYTHING ELSE PRESSING BUT JUST FOR LIKE A FEW HOURS
 # of the 2 new ideas, atomic, and streamfit (and fuck it maybe if you wanna do sumnt new whatever but...)
 # TRY TO DO THE THING THATS MOST DE RELEVANT, THINK DATABASES AND PIPELINES
 # - tho also please learn multithreading too and implement it
@@ -64,6 +64,7 @@ dashboard stuff
 # plus ci/cd, unittests, class based structure, all the things i wanted to do if my team wasnt fucking useless (things other people got to learn because they had double the team size even when i asked for support urghhh breathe ceefar lol)
 # obvs regardless of what you decide, even if it is continuing this, still try to do some DE relevant stuff, pipeline, db, optimisation
 # on top of stuff you wanna do with data vis, web app, and general improvements
+# also maybe do one of those 2 new ideas regardless as they are super simple in comparison to other stuff
 
 
 # TODO NOTES IM WORKING WITH FROM APP_INSIGHTS.py 

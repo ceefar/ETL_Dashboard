@@ -312,20 +312,20 @@ rel="stylesheet">
 <div class="box red">
 <h2>{6} {8}</h2>
 <p>These hours drastically outperformed the average hourly sales by {7} (volume)... </p>
-<img src="https://thehardgainerbible.com/wp-content/uploads/2022/07/increase_64.png" alt="">
+<img src="https://thehardgainerbible.com/wp-content/uploads/2022/07/fighting-game_64.png" alt="">
 </div>
 
 <div class="box box-down blue">
-<h2>{9} Sales Per Hour</h2>
+<h2>{9:.0f} sales per hour</h2>
 <p>I'd raise a cup to that</p>
-<img src="https://thehardgainerbible.com/wp-content/uploads/2022/07/sales_64.png" alt="">
+<img src="https://thehardgainerbible.com/wp-content/uploads/2022/07/coffee-cup_64.png" alt="">
 </div>
 </div>
 <div class="row2-container">
 <div class="box orange">
 <h2>{4:.0f} cups sold</h2>
 <p>For a total revenue of ${5:.2f}</p>
-<img src="https://thehardgainerbible.com/wp-content/uploads/2022/07/coffee-cup_64.png" alt="">
+<img src="https://thehardgainerbible.com/wp-content/uploads/2022/07/sales_64.png" alt="">
 </div>
 </div>
 </body>

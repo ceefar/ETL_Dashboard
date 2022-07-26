@@ -1253,7 +1253,7 @@ def run():
             op_hours_hour = []
             for hour, count in overperformed_by_dict.items():
                 # format the hours to strings and create new lists with the items cast to strings
-                op_hours_volume.append(str(count))
+                op_hours_volume.append(str(f"{count:.0f}"))
                 formatted_hour = give_hour_am_or_pm(hour)
                 op_hours_hour.append(str(formatted_hour))
             # if just one item thats overperforming
@@ -1333,8 +1333,6 @@ def run():
             
             # ---- INSIGHT DETAILS - TEXT ----
             with insightTab2:
-                # new html/css component, cards again, 3x horizontal, better suited for descriptive text, more cards can be added if needed
-                stc.html(TEST_CARD_HTML.format(), height=1200)
                 # see old code if you want the store image back, i mean or just do it urself its not hard duhhh
                 st.markdown("##### Insights")
                 st.write("Your personal insights dynamically created from the data you've selected")
@@ -1348,6 +1346,10 @@ def run():
                 st.write("Actionable Insight - Get more staff for these hours")
                 st.write(f"Hours Under Average Sales: {', '.join(list(map(lambda x : f'{x}pm' if x > 11 else f'{x}am' , list(below_avg_hc.keys()))))}")
                 st.write("Actionable Insight - Consider running product offers or discounts during these hours")
+                
+                # need to implement below instead of this bland af text
+                # new html/css component, cards again, 3x horizontal, better suited for descriptive text, more cards can be added if needed
+                stc.html(TEST_CARD_HTML.format(), height=1200)
 
             # ---- MORE INSIGHTS - CHART/S ----
             with insightTab3:
@@ -1462,3 +1464,10 @@ if __name__ == "__main__":
         logger.info("This literally has never been an actual duplicate error btw")
         logger.info(dupwid)
         
+
+
+
+# RN
+# - isnt really time to reimplement portfolio mode
+# - would love to get into finishing up the insights but is kinda diminishing returns at this hour
+# - so just do interview prep and unwind to get a good nights sleep :D
