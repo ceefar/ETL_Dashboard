@@ -31,7 +31,8 @@ from code_components import TEST_CARD_HTML, FOUR_CARD_INFO
 
 # create and configure insights page logger, all log levels, custom log message, overwrites file per run instead of appending [.debug / .info / .warning / .error / .critical ]
 LOG_FORMAT = "%(levelname)s %(asctime)s - %(message)s"
-logging.basicConfig(filename = "C:/Users/robfa/Downloads/ETL_Dashboard/applogs/insights.log", level = logging.DEBUG, format = LOG_FORMAT, filemode = "w")
+# i swear this doesn't work wtf
+logging.basicConfig(filename = "C:\\Users\\robfa\\Downloads\\ETL_Dashboard\\applogs\\insights.log", level = logging.DEBUG, format = LOG_FORMAT, filemode = "w")
 logger = logging.getLogger()
 
 
@@ -1220,7 +1221,9 @@ def run():
         # ---- END INSIGHT CALCULATIONS (mostly) ----
 
 
-        # TODOASAP - OBVIOUSLY MOVE THIS, BUT SINCE ITS NOT DONE LEAVING HERE ABOVE FOR EASY EDITING
+        # ---- FINALISE && PRINT INSIGHTS TO TABS/NESTED TABS ----
+
+        # note ideally would move this with the other functions at the top of the page but it gets updated regularly so leaving it where it is
         def fill_sublevel_tabs_with_insights(worst_performer, worst_time, best_performer, best_time, average_hourcups, above_avg_hc, below_avg_hc, hourcups_dict,
                                             overperformed_by_dict, hc_std_dict, hc_std, revenue_by_hour_dict, total_revenue, total_volume, highest_sd_hours,
                                             price_of_item:float=0.0, rev_diff_dict:dict={1:1.0}):
@@ -1232,17 +1235,7 @@ def run():
             # a simple boolean flag so we know if we are dealing with solo items or both, relevant for any calculation/print using price_of_item
             is_solo_item = True if price_of_item > 0 else False
 
-
-
-            # testing area
-            
-            # FFS DO THESE CARDS, THEN DO THE NEXT HTML COMPONENT TAB WHICH IS JUST THE REMAINING STUFF, AS TEXT IS FINE!
-            # THEN THE LAST CHART
-            # THEN FUCKING MINOR THINGS, TIDY UP, AND DO SUMNT ELSE FOR A BIT MAN
-            
-
-
-            # if is solo item create overperformance vars for insights print, 
+            # if is solo item create overperformance specifics, i.e. the *best (singular) volume and revenue *over* the average per hour
             if is_solo_item: 
                 # volume that this hour outperformed the average by
                 best_op_hour_volume = sorted(list(overperformed_by_dict.items()))[0]
@@ -1253,58 +1246,45 @@ def run():
                 best_op_hour_volume = {0:0}
                 best_op_hour_revenue = 0.0
 
-            print("best_op_hour_volume", best_op_hour_volume)
-            print("best_op_hour_revenue", best_op_hour_revenue)
-
-
-            # sumnt we're seeing rapid growth
+            # note this should be a function but kinda low on time right now so skipping
+            # for tab 2 expand this concept to include revenue also, this currently is only used for the snapshot cards
+            # overperforming hours and volumes (op over the average)
             op_hours_volume = []
             op_hours_hour = []
             for hour, count in overperformed_by_dict.items():
-                
+                # format the hours to strings and create new lists with the items cast to strings
                 op_hours_volume.append(str(count))
                 formatted_hour = give_hour_am_or_pm(hour)
                 op_hours_hour.append(str(formatted_hour))
-            
-            # TODOASAP - MAKE THIS A FUNCTION SO CAN REUSE IT!!!!
+            # if just one item thats overperforming
             if len(op_hours_hour) == 1:
                 display_op_hours = op_hours_hour[0]
                 display_op_volume = op_hours_volume[0]
                 # var for the display string, swap to plural if more than one hour
-                is_or_are_2 = "is"
+                is_or_are_2 = "is punching above it's weight"
             # if two an ampersand in the middle will suffice
             elif len(op_hours_hour) == 2:
                 display_op_hours = " & ".join(op_hours_hour)
                 display_op_volume = " & ".join(op_hours_volume)
-                is_or_are_2 = "are"
+                is_or_are_2 = "are punching above their weight"
             # if more than 2
             elif len(op_hours_hour) > 2:
-                display_op_hours = ", ".join(op_hours_hour)
-                display_op_volume = ", ".join(op_hours_volume)
-                # convert string to a list so we can use the last comma index to replace it with an ampersand (so its says A, B, C & D)
-                comma_to_and_inx_2 = display_op_hours.rfind(",")
-                stringtolist_2 = list(display_op_hours)
-                stringtolist_2[comma_to_and_inx_2] = " & "
-                display_op_hours = "".join(stringtolist_2)
-                is_or_are_2 = "are"
+                # add commas to the first items in the list and ampersand to the last 
+                # for volume
+                display_op_volume_left = ", ".join(op_hours_volume[0:-1])
+                display_op_volume = str(display_op_volume_left) + " & " + str(op_hours_volume[-1])
+                # for hours
+                display_op_hours_left = ", ".join(op_hours_hour[0:-1])
+                display_op_hours = str(display_op_hours_left) + " & " + str(op_hours_hour[-1])
+                # alter display string based since list count is plural 
+                is_or_are_2 = "are punching above their weight"
             else:
                 # if nothing in the list set the var anyway so it doesnt break (tho shouldnt even be displaying the block anyway but bugs happen)
                 display_op_hours = " "
                 display_op_volume = " "
                 is_or_are_2 = " "
 
-
-            # TODOASAP
-            # THE FINAL STRING HERE NEEDS CLARITY ITS VOLUME, THEN ADD REVENUE AND THEN ADD TOTAL REVENUE OF ALL OF THEM
-            # BUT USE THAT FOR TEXT TABS NOT FIRST TAB CARD STYLE
-
-
-
-
-
-
-
-            # just the dates handy as strings 
+            # just the dates handy as strings, should have done waaaay earlier but ah well
             date2_year = (st.session_state["active_date_2"].year)
             display_date_insights_1 = st.session_state["active_date_1"]
             display_date_insights_1 = datetime.datetime.strftime(display_date_insights_1, "%d %B %Y")
@@ -1315,11 +1295,7 @@ def run():
             else:
                 display_date_string = display_date_insights_1
 
-            # TODOASAP - test 3 hours so can see what it looks like 
 
-            # TODOASAP - not asap but whatever, if max multiplier is < 2 displya something else
-
-            # TODOASAP - MAKE THIS A FUNCTION SO CAN REUSE IT FOR OP DICT!
             # add am/pm to the hours by applying the function using map
             highest_hours_string_list = list(map(give_hour_am_or_pm, highest_sd_hours))
             highest_sd_multiplier = max(list(hc_std_dict.values()))             
@@ -1334,19 +1310,17 @@ def run():
                 is_or_are = "are"
             # if more than 2
             elif len(highest_hours_string_list) > 2:
-                display_sd_hours = " ,".join(highest_hours_string_list)
-                # convert string to a list so we can use the last comma index to replace it with an ampersand (so its says A, B, C & D)
-                comma_to_and_inx = display_sd_hours.rfind(",")
-                stringtolist = list(display_sd_hours)
-                stringtolist[comma_to_and_inx] = "& "
-                display_sd_hours = "".join(stringtolist)
+                # join every element but the last with commas
+                display_sd_hours_left = ", ".join(highest_hours_string_list[0:-1])
+                # then join the comma part with the last item using an ampersand
+                display_sd_hours = str(display_sd_hours_left) + " & " + str(highest_hours_string_list[-1])
                 is_or_are = "are"
             else:
                 # if nothing in the list set the var anyway so it doesnt break (tho shouldnt even be displaying the block anyway but bugs happen)
                 display_sd_hours = " "
                 is_or_are = " "
 
-            # obviously rename these tabs, add subtitles and explanation text (be succinct tho ffs!) # TODOASAP
+            # obviously rename these tabs, add subtitles and explanation text (be succinct tho pls)
             insightTab1, insightTab2, insightTab3 = st.tabs(["Core Insights", "Detailed Insights", "More Insights"])
             
             # some lambdas for extracting vars that didn't require functions
@@ -1359,6 +1333,8 @@ def run():
             
             # ---- INSIGHT DETAILS - TEXT ----
             with insightTab2:
+                # new html/css component, cards again, 3x horizontal, better suited for descriptive text, more cards can be added if needed
+                stc.html(TEST_CARD_HTML.format(), height=1200)
                 # see old code if you want the store image back, i mean or just do it urself its not hard duhhh
                 st.markdown("##### Insights")
                 st.write("Your personal insights dynamically created from the data you've selected")
@@ -1392,24 +1368,12 @@ def run():
                     st.altair_chart(pie_crust + pie_decotation, use_container_width=True)   
 
 
-
-
-        # TODOASAP 
-        # MAYBE USE THIS FOR ONE OF THE INSIGHTS PAGES (like the text page duh! - its pretty clean tbf)
-        # https://codepen.io/abergin/pen/BaKVWd
-
-
-        # best selling (volume/popularity) hour 
-        # standard deviation sumnt
-        # greatest revenue hour or revenue for the period (sumnt revenue)
-        # avg sales
-        
-        
         # ---- CREATE & DISPLAY INSIGHTS PROGRAMATICALLY ----
     
         # initialise tabs, named dynamically based on (main) item name
         insightBothItemsTab, insightItem1Tab, insightItem2Tab = st.tabs(["Insights - Both Items", f"1.{item_selector_1}", f"2.{item_selector_2}"])
 
+        # for each tab, run function which creates nested tabs and dynamically fills them with the relevant data (item 1, item 2, both items)
         with insightBothItemsTab:
             # ---- BOTH ITEMS ----
             st.markdown("*Note - Currently Insights are only for the full date range, not week by week*")
@@ -1437,102 +1401,39 @@ def run():
                                             overperformed_by_dict_2, hc_std_dict_2, hc_std_2, revenue_by_hour_dict_2,\
                                             total_revenue_2, total_volume_2, highest_sd_hours_2, price_of_item=price_of_item_2)
         
-        
-        
-        # handy vars
-        print("hourcups_dict_1", hourcups_dict_1)  # same as hcd_sort_by_value_1
-        print("overperformed_by_dict_1", overperformed_by_dict_1)
-        print("hc_std_dict_1", hc_std_dict_1)
-        print("hc_std_1", hc_std_1)
-        print("worst_time_1, best_time_1", worst_time_1, best_time_1)
-        print("worst_performer_1, best_performer_1", worst_performer_1, best_performer_1)
-        print("above_avg_hc_1, below_avg_hc_1", above_avg_hc_1, below_avg_hc_1)
-        print("revenue_by_hour_dict_1", revenue_by_hour_dict_1)
-        # print revenue_diff_by_hour_dict is above
-        print("price for item 1 = ", f"$", price_of_item_1, sep='')
-        print("total revenue for item 1 = ", f"$", f"{total_revenue_1:.2f}", sep='')
-        print("total_volume_1", total_volume_1)
-        print("total_revenue_both", total_revenue_both)
 
+        def thats_how_we_play_handy_hands(play_handy_hands:bool = False):
+            """ turn on to print some handy variables to console... its a rick and morty reference [https://www.youtube.com/watch?v=0HAbLnpq52o&ab_]"""
+            # use bool and a function as its easier to turn on off as a chunk and make bulk changes
+            if play_handy_hands:
+                # print the handy vars
+                print("hourcups_dict_1", hourcups_dict_1)  # same as hcd_sort_by_value_1
+                print("overperformed_by_dict_1", overperformed_by_dict_1)
+                print("hc_std_dict_1", hc_std_dict_1)
+                print("hc_std_1", hc_std_1)
+                print("worst_time_1, best_time_1", worst_time_1, best_time_1)
+                print("worst_performer_1, best_performer_1", worst_performer_1, best_performer_1)
+                print("above_avg_hc_1, below_avg_hc_1", above_avg_hc_1, below_avg_hc_1)
+                print("revenue_by_hour_dict_1", revenue_by_hour_dict_1)
+                # should print revenue_diff_by_hour_dict but it's not chunked with everything else so leaving it
+                print("price for item 1 = ", f"$", price_of_item_1, sep='')
+                print("total revenue for item 1 = ", f"$", f"{total_revenue_1:.2f}", sep='')
+                print("total_volume_1", total_volume_1)
+                print("total_revenue_both", total_revenue_both)
 
-    stc.html(TEST_CARD_HTML.format(), height=1200)
-
-
-
-# OK SO NEXT/RN
-# DO CARDS, DO INSIGHTS, PORTFOLIO MODE, BE DONE WITH IT (do other stuff!)
-
-
-# then get the initial card layout thing done and dusted (hella basic, will improve shortly) 
-# - legit just start doing this as combo for item 1 and both, including all the new stuff then just continue
-
-
-# then do a tidbit more on insights here
-# - overperformed by how much
-# - if multiple sizes of same item get sumnt regardless of how basic (hmmm come back to this tbf - shouldnt be too hard tho)
-# - calculate actual revenue duh, use a diff type of chart too
-#   - consider bump chart, maybe not for here tbf actually https://altair-viz.github.io/gallery/bump_chart.html
-
-# then fully finish up the actual insights bit - have explanation text and see image on tablet for help btw
-
-# then
-# get dates working
-# then do portfolio mode a bit
-
-# then (????) do new page - all store products with dates (basically copy just no long user input stuff)
-# and do insights on that
-# if you want anything compare wise just to straight up 2 stores
-# note charts n shit will be different but this is true/better insights
-
-# then once 2nd page is done LEGIT do other small project ideas
-# also be sure to clean up fully, even maybe with a cleaned version and a working (on) version
-# - obvs need portfolio mode too!
+        thats_how_we_play_handy_hands(play_handy_hands=True)
 
 
 
-# - actual fucking insights
-# - move the functs outside of run
-# - date ranges (just 1 more or maybe even just skip for now tbh)
-#   - ensure single day still works perfectly
-#   - if this continues to be iffy, move it to 2nd place so that first thing on tab is between 2 dates (as errors less)
-#   - on my current critical error handling ting add a button that the user can press!
-# - test multithreading with args and return values (can try on a new page duh)
-
-# - wtf random markdown number, comments, ideally starting on a monday or sunday if is easy enough (should be tbf but should skip this)
-# - logging, unittest, ci/cd basics
-
-# - tab stuff like title subtitle etc
-# - generally move functions, ig and comment and clean up a bit quickly
-# - ensure single day is still working fine btw (ideally with no tabs showing) 
-# - obvs 100 needs portfolio mode before done, oh and advanced mode too maybe but idk
-    # - at this point also... due to the db.get_from function error 
-        # - move everything that was a db.get_from, from here to db_integration
-        # - then use code snippets in a different new module for portfolio mode!
-# - the calendar print
-    # - also tho owt else could do with artist?
-# - hella error handling and see if i can get this shit with the connection to work cause if that always breaks rip portfolio
-# - jazz shit up a teeny bit (gifs n shit)
-# - finally tidy up then leave it for now
-# - also things like github/website image thing btw
-# - also check history to find that kid that had the exact same condition as me as can't remember what else he posted
-
-# NO CAP, ONCE THIS INSIGHTS IS DONE MOVE ON TO OTHER (QUICKER PROJECTS LIKE 2 IDEAS AM JUST GUNA COPY AND CANCER TING)
-# - one was the map idea (best suited area for you, could add in whatever user selects I want tbh but house price and like council tax, average shop sumnt is good start)
-# - other was skal.es week time thing
-# - obvs my other 2 projects but really just the new atmoic which is 80HD, focus on just one thing ffs get that done and live with user login and db stuff then and only then move on
-
-# TODOASAP
-# when doing github recording and todo notes dont forget to record functionality from previous versions of this and include it in this readme
-# even tho will be in other repos, as those repos probably wont be seen
 
 
 # ---- DRIVER ----
 if __name__ == "__main__":
     try:
         run()
-    # if errors due to connection, wipe the entire cache (which is the issue, the cached connection), then user rerun fixes issue
-    # note have removed the singleton from the connection which seems to resolve this but leaving the error handling anyway since why not
+    # if the connection errors, wipe the entire cache, then show user rerun button which fixes issue (using any widget will do the same)
     except mysql.connector.errors.OperationalError as operr:
+        # note have removed the singleton from the connection which seems to resolve previous conn errors but leaving the error handling anyway
         # log error messages
         logger.error("ERROR! - (╯°□°）╯︵ ┻━┻")
         logger.info("What The Connection Doin?")
@@ -1560,7 +1461,4 @@ if __name__ == "__main__":
         logger.error("DuplicateWidgetID")
         logger.info("This literally has never been an actual duplicate error btw")
         logger.info(dupwid)
-        
-
-
         
