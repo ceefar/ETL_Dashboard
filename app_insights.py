@@ -292,6 +292,16 @@ def make_date_query(user_date:tuple|datetime.date) -> str:
     return(date_part)
 
 
+def give_hour_am_or_pm(an_hour):
+    """ takes an int (or float ig) and returns a string with am or pm appended to the end based on 24 hour clock """
+    # cast to int just incase we get a float, could try except a type error but not expecting any other types (user can't input except dropdowns)
+    an_hour = int(an_hour)
+    # ternary if statement to set the string
+    an_hour = f'{an_hour}pm' if an_hour > 11 else f'{an_hour}am'
+    # return the result
+    return(an_hour)
+
+
 # ---- INSIGHTS FUNCTIONS ----
 # more functions, but just from the insights section, broken up sections for a bit more visual clarity
 
@@ -431,15 +441,27 @@ def get_price_for_item(item_selector, final_size_select, final_flav_select):
 
 
 # might not be a float, check please
-def create_revenue_by_hour_dict_n_total_revenue(hourcups_dict:dict, price_of_item:float) -> tuple[float, dict]:
-    """ write me """
+def create_revenue_by_hour_dict_n_total_revenue(hourcups_dict:dict, price_of_item:float) -> tuple[dict, float, int]:
+    """ create revenue metrics using volume of cups sold with price of each item, returns revenue per hour(dict), tot revenue, & tot volume """
     revenue_by_hour_dict = {}
     total_revenue = 0
+    total_volume = 0
     for hourkey, valuecups in hourcups_dict.items():
         revenue_by_hour_dict[hourkey] = valuecups * price_of_item
         total_revenue += revenue_by_hour_dict[hourkey]
+        total_volume += valuecups
     # return the results
-    return(revenue_by_hour_dict, total_revenue)
+    return(revenue_by_hour_dict, total_revenue, total_volume)
+
+
+def get_hours_at_highest_standard_deviation(hc_std_dict:dict) -> list:
+    """ uses hour dict to get the hours over the standard deviation - sd was calculated using floor div so there can be multiple hours """
+    # get the highest/max standard deviations value 
+    highest_sd = max(list(hc_std_dict.values())) 
+    # loop the items to return the keys only if it matches the highest standard deviation value - incase there is more than one
+    highest_sd_hours = [key for key, value in hc_std_dict.items() if value == highest_sd]
+    # return the result
+    return(highest_sd_hours)
 
 
 def create_hc_1_vs_2_difference_in_revenue_by_hour_dict(rev_by_hour_dict_1:dict, rev_by_hour_dict_2:dict) -> dict[int:float]:
@@ -544,11 +566,22 @@ def run():
     first_valid_date = datetime.datetime.strptime(first_valid_date, '%Y-%m-%d').date()
     last_valid_date = datetime.datetime.strptime(last_valid_date, '%Y-%m-%d').date()
 
-    # initialise session state var if there is none, default to 2 (this is the initial tab number (key) for between 2 dates select - is more stable)
+
+    # ---- CREATE SESSION STATES ----
+    # initialise session state vars if there are none, these (dictionaries) are persisted throughout page reruns
     if "last_active_date_tab" not in st.session_state:
+        # last active tab defaults to 2 (this is the initial tab number (key) for between 2 dates select - & is currently more stable)
         st.session_state["last_active_date_tab"] = 2 
+    
+    # want quicker/easier access to dates as datetime.date object so adding this in
+    if "active_date_1" not in st.session_state:
+        st.session_state["active_date_1"] = datetime.date(2020, 7, 1) # 1 = start date
+    if "active_date_2" not in st.session_state:
+        st.session_state["active_date_2"] = datetime.date(2000, 1, 1) # 2 = end date (if valid, hence different default)
+
+    # TODOASAP - delete below? rn removed to test and see if it even did anything
     # empty var for selected stores last active tab functionality
-    selected_date = ""
+    # selected_date = ""
 
 
     # ---- SIDEBAR ----
@@ -586,14 +619,25 @@ def run():
     # ---- USER SELECTS + VISUAL CLARITY ----
 
     def last_active_tab(the_tab:str = "off", want_return:bool = False):
-        """ could just do with the actual variables instead of the tab?!?... blah, returns blah """
+        """ write me """
 
         # use a session state var to persist the last active tab
         last_active_date_tab = st.session_state["last_active_date_tab"]
 
-        # switch to either return the last active tab or store it
+        # temp test for easy date display, last active date tab sessionstate is kinda buggy and running outside of on_change so might remove
+        if last_active_date_tab == 1:
+            st.session_state["active_date_1"] = selected_date_1
+            # guna just check if date 2 is this date, if it is dont print it
+            st.session_state["active_date_2"] = datetime.date(2000, 1, 1)
+        elif last_active_date_tab == 2:
+            st.session_state["active_date_1"] = selected_date_2_start
+            st.session_state["active_date_2"] = selected_date_2_end
+        # obvs would need for tab 3, 4 etc but is fine for now
+
+        # switch case to either return the last active tab or store it
         if want_return:
-                return(last_active_date_tab)
+                # ngl this is so dumb, if want return just use the session state var but whatever
+                return(last_active_date_tab) 
         else:
             st.session_state["last_active_date_tab"] = the_tab
 
@@ -622,14 +666,14 @@ def run():
             selected_date_1 = st.date_input("What Date Would You Like Info On?", datetime.date(2022, 7, 5), max_value=last_valid_date, min_value=first_valid_date, on_change=last_active_tab, args=[1], key="TODO")  
             st.write("##")
             st.button("Get Insights", help="To Get New Insights : change the date, press this button, use physic powers", key="run_1", on_click=force_date_run_btn, args=["run_1"])
-        
+
         # ---- BETWEEN 2 DAYS ----
         with dateTab2:
             selected_date_2_start = st.date_input("What Start Date?", datetime.date(2022, 7, 1), max_value=last_valid_date, min_value=first_valid_date, on_change=last_active_tab, args=[2], key="TODO2")  
             selected_date_2_end = st.date_input("What End Date?", datetime.date(2022, 7, 8), max_value=last_valid_date, min_value=first_valid_date, on_change=last_active_tab, args=[2], key="TODO3")
             st.write("##")
             st.button("Get Insights", help="To Get New Insights : change the date, press this button, use physic powers", key="run_2", on_click=force_date_run_btn, args=["run_2"])
-            # TODO - days between dates here 
+            # TODO - print days between dates here 
 
         # ---- SINGLE WEEK ----
         with dateTab3:
@@ -660,17 +704,16 @@ def run():
                 multiweek_default = [stores_available_weeks[0],stores_available_weeks[1]]
             else:
                 multiweek_default = [stores_available_weeks[0]]
-            selected_date_4 = st.multiselect("Which Weeks?", options=stores_available_weeks, default=multiweek_default, key="TODO5", help="See 'Single Week' for week commencing date", on_change=last_active_tab, args=[4])
+            selected_date_4 = st.multiselect("Which Weeks?", options=stores_available_weeks, default=multiweek_default, key="TODO5", help="See 'Single Week' for week commencing date", on_change=last_active_tab, disabled=True, args=[4])
             # TODO - obvs have this on the right hand side with the img ting and ig like completeness too (total days && available days)
             st.write(f"Total Days = {len(selected_date_4) * 7}")
             st.write("##")
             st.button("Get Insights", help="To Get New Insights : change the date, press this button, use physic powers", key="run_4", on_click=force_date_run_btn, args=["run_4"])        
 
-
     # var that holds the key/on_change args from each date select plus the variables that store the result, used for getting the last active tab
     use_vs_selected_date_dict = {1:selected_date_1, 2:(selected_date_2_start, selected_date_2_end), 3:selected_date_3, 4:selected_date_4}
 
-    def set_selected_date_from_last_active_tab(date_dict:dict) -> datetime.date|tuple: # technically isn't returning a datetime object but a datewidget object but meh same same and probs convert it anyways
+    def set_selected_date_from_last_active_tab(date_dict:dict) -> datetime.date|tuple: 
         """ use the on_change arguments (which is just the key as an int) from each date select and returns the variables holding the relevant dates """
         use_date = last_active_tab(want_return=True)
 
@@ -681,7 +724,7 @@ def run():
             return((to_make_date, end_of_week[0][0]))
 
         # TODOASAP 
-        # FOR IS LITERALLY THE SAME AS OPTION 3, IT JUST BECOMES AN AND STATEMENT 
+        # 4 IS LITERALLY THE SAME AS OPTION 3, IT JUST BECOMES AN AND STATEMENT 
         #   - unless ig the dates are next to each other but meh doesn't make enough diff so just do one way with AND
             
         return(date_dict[use_date])    
@@ -815,13 +858,14 @@ def run():
 
         # due to the way streamlit works with rerunning the entire app on update, occassional bugs slip in
         # this covers the last active tab being reset to a less stable state, and forces it to the more stable 'between two dates' option
-        if st.session_state["last_active_date_tab"] == 4:
-            print(st.session_state["last_active_date_tab"])
+        print(st.session_state["last_active_date_tab"]) # debug print that should be removed
+        if st.session_state["last_active_date_tab"] == 4: # think i might be hopping around between int and str for this var btw
             last_active_tab(2)
             selected_date = set_selected_date_from_last_active_tab(use_vs_selected_date_dict)
             selected_date = make_date_query(selected_date)
 
         # the key/int of the last active tab for deciding whether want results to have week based tab display
+        # legit should just use the session state here instead of the functions return value duhhhhhhhhhh
         active_tab_key = last_active_tab(want_return=True)
 
         # if is a "BETWEEN" date query, then add in new column after the CONCAT part of the SELECT statement to also include the date (for making tabs)
@@ -1018,7 +1062,6 @@ def run():
         just_hour_list_2_w0, just_hour_list_2_w1, just_hour_list_2_w2, just_hour_list_2_w3, just_hour_list_2_w4, just_hour_list_2_w5 = result_weeks_date_tuple[6], result_weeks_date_tuple[7], result_weeks_date_tuple[8], result_weeks_date_tuple[9], result_weeks_date_tuple[10], result_weeks_date_tuple[11]
         just_names_list_2_w0, just_names_list_2_w1, just_names_list_2_w2, just_names_list_2_w3, just_names_list_2_w4, just_names_list_2_w5 = result_weeks_date_tuple[12], result_weeks_date_tuple[13], result_weeks_date_tuple[14], result_weeks_date_tuple[15], result_weeks_date_tuple[16], result_weeks_date_tuple[17]
 
-
         # ---- FOR ITEM 1 / LEFT SIDE ---- 
         result_all_1 = extend_all_lists(just_cupcount_list_1_all, just_hour_list_1_all, just_names_list_1_all, 
                         just_cupcount_list_1_w0,just_cupcount_list_1_w1,just_cupcount_list_1_w2,just_cupcount_list_1_w3,just_cupcount_list_1_w4,just_cupcount_list_1_w5,
@@ -1032,7 +1075,6 @@ def run():
         just_hours_1_for_df = just_hour_list_1_all.copy()
         just_names_1_for_df = just_names_list_1_all.copy()
 
-
         # ---- FOR ITEM 2 / RIGHT SIDE ---- 
         result_all_2 = extend_all_lists(just_cupcount_list_2_all, just_hour_list_2_all, just_names_list_2_all, 
                         just_cupcount_list_2_w0,just_cupcount_list_2_w1,just_cupcount_list_2_w2,just_cupcount_list_2_w3,just_cupcount_list_2_w4,just_cupcount_list_2_w5,
@@ -1045,7 +1087,6 @@ def run():
         just_cupcount_2_for_df = just_cupcount_list_2_all.copy()
         just_hours_2_for_df = just_hour_list_2_all.copy()
         just_names_2_for_df = just_names_list_2_all.copy()        
-
 
         # ---- EXTEND LIST 1 WITH LIST 2 ----
         # organise for passing to the extend function
@@ -1089,12 +1130,16 @@ def run():
         
         # lightly format if just one date
         if st.session_state["last_active_date_tab"] == 1:
-            date_as_word = datetime.datetime.strftime(first_valid_date, "%d %B, %Y")
+            date_as_word = datetime.datetime.strftime(st.session_state["active_date_1"], "%d %B, %Y")
         else:
             date_as_word = "01/01/2022"
+        # or chuck in the date range if its between two dates
+        display_date_1 = str(st.session_state["active_date_1"])
+        display_date_2 = str(st.session_state["active_date_2"])
 
-        # TODOASAP - MUST MUST MUST HIGHLIGHT THE DATES AS TABS IS WILDIN BOI
-        chartTab_dict = {0:(chartTab0, f"{'All Dates' if weeks_between_dates != 0 else date_as_word}", (just_names_list_1_all, just_cupcount_list_1_all, just_hour_list_1_all)),
+
+        # TODOASAP - THE DATE HERE WOULD BE WAAAAY BETTER AS SUBTITLE DUHHHH!
+        chartTab_dict = {0:(chartTab0, f"{f'All Dates [{display_date_1} to {display_date_2}]' if weeks_between_dates != 0 else date_as_word}", (just_names_list_1_all, just_cupcount_list_1_all, just_hour_list_1_all)),
                             1:(chartTab1, "First Week", (just_names_list_1_w0, just_cupcount_list_1_w0, just_hour_list_1_w0)),
                             2:(chartTab2, "Some Title", (just_names_list_1_w1, just_cupcount_list_1_w1, just_hour_list_1_w1)),
                             3:(chartTab3, "Some Title", (just_names_list_1_w2, just_cupcount_list_1_w2, just_hour_list_1_w2)),
@@ -1124,7 +1169,9 @@ def run():
         # ---- END ALTAIR CHART - PHEW ----
 
 
-        # ---- START INSIGHTS ----
+        # ---- START INSIGHTS SECTION ----
+
+        # ---- RUN INSIGHTS CALCUALTIONS ----
         # gain insights by running some indepth calculations and displaying info back to user using tabs
             
         # create a dataset of item 1 and 2 combined to use as a dataframe
@@ -1145,8 +1192,9 @@ def run():
             overperformed_by_dict_1, hc_std_dict_1, hc_std_1 = create_hourcups_insights_data(hourcups_dict_1, hcd_sort_by_value_1)
         # new things - price of item, revenue for each hour dict, total revenue for item for timeframe
         price_of_item_1 = get_price_for_item(item_selector_1, final_size_select_1, final_flav_select_1)
-        revenue_by_hour_dict_1, total_revenue_1 = create_revenue_by_hour_dict_n_total_revenue(hourcups_dict_1, price_of_item_1)   
-        
+        revenue_by_hour_dict_1, total_revenue_1, total_volume_1 = create_revenue_by_hour_dict_n_total_revenue(hourcups_dict_1, price_of_item_1)   
+        highest_sd_hours_1 = get_hours_at_highest_standard_deviation(hc_std_dict_1)
+
         # for item 2
         # create hour vs cups sold dictionaries used for insights 
         hourcups_dict_2, hcd_sort_by_value_2 = create_two_simple_cups_for_hour_dict(df_sawce_2)
@@ -1155,7 +1203,8 @@ def run():
             overperformed_by_dict_2, hc_std_dict_2, hc_std_2 = create_hourcups_insights_data(hourcups_dict_2, hcd_sort_by_value_2)
         # new things - price of item, revenue for each hour dict, total revenue for item for timeframe
         price_of_item_2 = get_price_for_item(item_selector_2, final_size_select_2, final_flav_select_2)
-        revenue_by_hour_dict_2, total_revenue_2 = create_revenue_by_hour_dict_n_total_revenue(hourcups_dict_2, price_of_item_2)   
+        revenue_by_hour_dict_2, total_revenue_2, total_volume_2 = create_revenue_by_hour_dict_n_total_revenue(hourcups_dict_2, price_of_item_2)   
+        highest_sd_hours_2 = get_hours_at_highest_standard_deviation(hc_std_dict_2)
 
         # for both items together (sum of compared hourcups per hour)
         # create hour vs cups sold dictionaries used for insights 
@@ -1163,37 +1212,151 @@ def run():
         # then get the hourcups insights data
         average_hourcups_both, worst_time_both, best_time_both, worst_performer_both, best_performer_both, above_avg_hc_both, below_avg_hc_both,\
             overperformed_by_dict_both, hc_std_dict_both, hc_std_both = create_hourcups_insights_data(hourcups_dict_both, hcd_sort_by_value_both)
-        # if you want revenue by hour dict or total revenue for both items together just create dem, tot rev easy just add but dicts needs looping (easy enuff)
+        # new things
+        total_revenue_both = total_revenue_1 + total_revenue_2
+        highest_sd_hours_both = get_hours_at_highest_standard_deviation(hc_std_dict_both)
+        # price of item not relevant for both so discarded, price here is just both prices added together
+        _, revenue_by_hour_dict_both, total_volume_both = create_revenue_by_hour_dict_n_total_revenue(hourcups_dict_both, (price_of_item_1 + price_of_item_2))   
 
         # ---- END INSIGHT CALCULATIONS (mostly) ----
-        
-
-
 
 
         # TODOASAP - OBVIOUSLY MOVE THIS, BUT SINCE ITS NOT DONE LEAVING HERE ABOVE FOR EASY EDITING
-        def fill_sublevel_tabs_with_insights(worst_performer, worst_time, best_performer, best_time, average_hourcups, above_avg_hc, below_avg_hc, hourcups_dict):
-            """ programmatically fill subtabs with insights for item 1, 2, or both """
+        def fill_sublevel_tabs_with_insights(worst_performer, worst_time, best_performer, best_time, average_hourcups, above_avg_hc, below_avg_hc, hourcups_dict,
+                                            overperformed_by_dict, hc_std_dict, hc_std, revenue_by_hour_dict, total_revenue, total_volume, highest_sd_hours,
+                                            price_of_item:float=0.0, rev_diff_dict:dict={1:1.0}):
+            """
+            programmatically fill subtabs with insights for item 1, 2, or both, tabs are initialised inside the function and must stay there,
+            last two parameters are default args since they based on if function runs for item 1 or 2 (price of item), or both items (revenue diff dict)
+            """
 
-            # yes the tabs actually need to be inside the function for it to work 
-            #   - can't be passed by reference - though maybe could be passed by value, whatever it works fine like this
-            # obviously rename these tabs, add subtitles and explanation text (be succinct tho ffs!) # TODOASAP
-            insightTab1, insightTab2, insightTab3 = st.tabs(["Core Insights", "Detailed Insights", "More Insights"])
+            # a simple boolean flag so we know if we are dealing with solo items or both, relevant for any calculation/print using price_of_item
+            is_solo_item = True if price_of_item > 0 else False
+
+
+
+            # testing area
             
-        
+            # FFS DO THESE CARDS, THEN DO THE NEXT HTML COMPONENT TAB WHICH IS JUST THE REMAINING STUFF, AS TEXT IS FINE!
+            # THEN THE LAST CHART
+            # THEN FUCKING MINOR THINGS, TIDY UP, AND DO SUMNT ELSE FOR A BIT MAN
+            
+
+
+            # if is solo item create overperformance vars for insights print, 
+            if is_solo_item: 
+                # volume that this hour outperformed the average by
+                best_op_hour_volume = sorted(list(overperformed_by_dict.items()))[0]
+                # that volume converted to revenue
+                best_op_hour_revenue = best_op_hour_volume[1] * price_of_item
+            else:
+                # else set to a null default of same type and we'll display something else relevant for 'both' only if we need to
+                best_op_hour_volume = {0:0}
+                best_op_hour_revenue = 0.0
+
+            print("best_op_hour_volume", best_op_hour_volume)
+            print("best_op_hour_revenue", best_op_hour_revenue)
+
+
+            # sumnt we're seeing rapid growth
+            op_hours_volume = []
+            op_hours_hour = []
+            for hour, count in overperformed_by_dict.items():
+                
+                op_hours_volume.append(str(count))
+                formatted_hour = give_hour_am_or_pm(hour)
+                op_hours_hour.append(str(formatted_hour))
+            
+            # TODOASAP - MAKE THIS A FUNCTION SO CAN REUSE IT!!!!
+            if len(op_hours_hour) == 1:
+                display_op_hours = op_hours_hour[0]
+                display_op_volume = op_hours_volume[0]
+                # var for the display string, swap to plural if more than one hour
+                is_or_are_2 = "is"
+            # if two an ampersand in the middle will suffice
+            elif len(op_hours_hour) == 2:
+                display_op_hours = " & ".join(op_hours_hour)
+                display_op_volume = " & ".join(op_hours_volume)
+                is_or_are_2 = "are"
+            # if more than 2
+            elif len(op_hours_hour) > 2:
+                display_op_hours = ", ".join(op_hours_hour)
+                display_op_volume = ", ".join(op_hours_volume)
+                # convert string to a list so we can use the last comma index to replace it with an ampersand (so its says A, B, C & D)
+                comma_to_and_inx_2 = display_op_hours.rfind(",")
+                stringtolist_2 = list(display_op_hours)
+                stringtolist_2[comma_to_and_inx_2] = " & "
+                display_op_hours = "".join(stringtolist_2)
+                is_or_are_2 = "are"
+            else:
+                # if nothing in the list set the var anyway so it doesnt break (tho shouldnt even be displaying the block anyway but bugs happen)
+                display_op_hours = " "
+                display_op_volume = " "
+                is_or_are_2 = " "
 
 
             # TODOASAP
-            # TEMP TESTING
+            # THE FINAL STRING HERE NEEDS CLARITY ITS VOLUME, THEN ADD REVENUE AND THEN ADD TOTAL REVENUE OF ALL OF THEM
+            # BUT USE THAT FOR TEXT TABS NOT FIRST TAB CARD STYLE
+
+
+
+
+
+
+
+            # just the dates handy as strings 
+            date2_year = (st.session_state["active_date_2"].year)
+            display_date_insights_1 = st.session_state["active_date_1"]
+            display_date_insights_1 = datetime.datetime.strftime(display_date_insights_1, "%d %B %Y")
+            if date2_year > 2000:
+                display_date_insights_2 = st.session_state["active_date_2"]
+                display_date_insights_2 = datetime.datetime.strftime(display_date_insights_2, "%d %B %Y")
+                display_date_string = f"{display_date_insights_1} to {display_date_insights_2}"
+            else:
+                display_date_string = display_date_insights_1
+
+            # TODOASAP - test 3 hours so can see what it looks like 
+
+            # TODOASAP - not asap but whatever, if max multiplier is < 2 displya something else
+
+            # TODOASAP - MAKE THIS A FUNCTION SO CAN REUSE IT FOR OP DICT!
+            # add am/pm to the hours by applying the function using map
+            highest_hours_string_list = list(map(give_hour_am_or_pm, highest_sd_hours))
+            highest_sd_multiplier = max(list(hc_std_dict.values()))             
+            # if theres only one item in the list just display that
+            if len(highest_hours_string_list) == 1:
+                display_sd_hours = highest_hours_string_list[0]
+                # var for the display string, swap to plural if more than one hour
+                is_or_are = "is"
+            # if two an ampersand in the middle will suffice
+            elif len(highest_hours_string_list) == 2:
+                display_sd_hours = " & ".join(highest_hours_string_list)
+                is_or_are = "are"
+            # if more than 2
+            elif len(highest_hours_string_list) > 2:
+                display_sd_hours = " ,".join(highest_hours_string_list)
+                # convert string to a list so we can use the last comma index to replace it with an ampersand (so its says A, B, C & D)
+                comma_to_and_inx = display_sd_hours.rfind(",")
+                stringtolist = list(display_sd_hours)
+                stringtolist[comma_to_and_inx] = "& "
+                display_sd_hours = "".join(stringtolist)
+                is_or_are = "are"
+            else:
+                # if nothing in the list set the var anyway so it doesnt break (tho shouldnt even be displaying the block anyway but bugs happen)
+                display_sd_hours = " "
+                is_or_are = " "
+
+            # obviously rename these tabs, add subtitles and explanation text (be succinct tho ffs!) # TODOASAP
+            insightTab1, insightTab2, insightTab3 = st.tabs(["Core Insights", "Detailed Insights", "More Insights"])
+            
+            # some lambdas for extracting vars that didn't require functions
             hours_above_avg_sales = ', '.join(list(map(lambda x : f'{x}pm' if x > 11 else f'{x}am' , list(above_avg_hc.keys()))))
-            # INSIGHTS LIKE - consider bundling this items a these times for upsell potential
-
-
-
+            hours_below_avg_sales = ', '.join(list(map(lambda x : f'{x}pm' if x > 11 else f'{x}am' , list(below_avg_hc.keys()))))
 
             # ---- CORE INSIGHTS - CARDS ----
             with insightTab1:
-                stc.html(FOUR_CARD_INFO.format(f"{average_hourcups:.0f}", hours_above_avg_sales), height=1500)
+                stc.html(FOUR_CARD_INFO.format(display_date_string, display_sd_hours, is_or_are, f"{highest_sd_multiplier:.0f}", total_volume, total_revenue, display_op_hours, display_op_volume, is_or_are_2, average_hourcups), height=1500)
             
             # ---- INSIGHT DETAILS - TEXT ----
             with insightTab2:
@@ -1206,7 +1369,7 @@ def run():
                 st.write(f"At {best_time}{'pm' if best_time > 11 else 'am'} ensure staff numbers with strong workers at this time to maximise sales")
                 st.write("")
                 st.markdown(f"Average Sales Per Hour: {average_hourcups:.0f} cups sold")
-                st.write(f"Hours Above Average Sales: {', '.join(list(map(lambda x : f'{x}pm' if x > 11 else f'{x}am' , list(above_avg_hc.keys()))))}")
+                st.write(f"Hours Above Average Sales: {hours_above_avg_sales}")
                 st.write("Actionable Insight - Get more staff for these hours")
                 st.write(f"Hours Under Average Sales: {', '.join(list(map(lambda x : f'{x}pm' if x > 11 else f'{x}am' , list(below_avg_hc.keys()))))}")
                 st.write("Actionable Insight - Consider running product offers or discounts during these hours")
@@ -1228,73 +1391,78 @@ def run():
                     pie_crust = pie_base.mark_arc(innerRadius=20, stroke="#fff") # the actual chart
                     pie_decotation = pie_base.mark_text(radiusOffset=10).encode(text="values:Q") # the text... i get bored sometimes
                     st.altair_chart(pie_crust + pie_decotation, use_container_width=True)   
-        # END FUNCTION
 
 
-        # ---- DISPLAY INSIGHTS PROGRAMATICALLY ----
-    
-        insightBothItemsTab, insightItem1Tab, insightItem2Tab = st.tabs(["Insights - Both Items", f"1.{item_selector_1}", f"2.{item_selector_2}"])
+
+
+        # TODOASAP 
+        # MAYBE USE THIS FOR ONE OF THE INSIGHTS PAGES (like the text page duh! - its pretty clean tbf)
+        # https://codepen.io/abergin/pen/BaKVWd
+
+
+        # best selling (volume/popularity) hour 
+        # standard deviation sumnt
+        # greatest revenue hour or revenue for the period (sumnt revenue)
+        # avg sales
         
-
-
-
-
-        print(overperformed_by_dict_1)
-        print(hc_std_dict_1)
-        print(hc_std_1) 
-        print(hourcups_dict_1)
-        print("price for item 1 = ", f"$", price_of_item_1, sep='')
-        print("total revenue for item 1 = ", f"$", f"{total_revenue_1:.2f}", sep='')
-        # moved revenue_diff_by_hour_dict below
-        print("hc_std_dict_both", hc_std_dict_both)
-        print("hc_std_both", hc_std_both)
-
-
-        # TODOASAP - LEGIT THIS SHIT IS DONE, DO CARDS, DO INSIGHTS, PORTFOLIO MODE, BE DONE WITH IT (do other stuff!)
-        # thinking for the 4 things in cards...
-        # best selling (volume/popularity) hour, standard deviation sumnt, greatest revenue hour or revenue for the period (sumnt revenue), and avg sales
-
-
-        # TODOASAP - MAKE THIS A FUNCTION
-        # get the highest standard deviations value floor - divd btw so can be multiple but here we are just getting the max value 
-        highest_sd_both = max(list(hc_std_dict_both.values())) 
-        print("highest_sd_both", highest_sd_both)
-        # loop the items to return the keys only if it matches the highest standard deviation value - incase there is more than one
-        highest_sd_hours_both = [key for key, value in hc_std_dict_both.items() if value == highest_sd_both]
-        print("highest_sd_hours_both", highest_sd_hours_both)
-        # ACTIONABLE INSIGHT TO BE SOMETHING LIKE A 5P INCREASE ON THIS ITEM WILL BE ENTIRE UNNOTICED BY CUSTOMERS BUT WILL GENERATE SIGNIFICANT REVENUE???? (sim)
-
-
-
+        
+        # ---- CREATE & DISPLAY INSIGHTS PROGRAMATICALLY ----
+    
+        # initialise tabs, named dynamically based on (main) item name
+        insightBothItemsTab, insightItem1Tab, insightItem2Tab = st.tabs(["Insights - Both Items", f"1.{item_selector_1}", f"2.{item_selector_2}"])
 
         with insightBothItemsTab:
             # ---- BOTH ITEMS ----
             st.markdown("*Note - Currently Insights are only for the full date range, not week by week*")
             # this is 1 minus 2 so is really unique and not valid for 1 or 2 hence why it is here (legit placed here so i dont forget it too)
             revenue_diff_by_hour_dict = create_hc_1_vs_2_difference_in_revenue_by_hour_dict(revenue_by_hour_dict_1,revenue_by_hour_dict_2)
-            print("revenue_diff_by_hour_dict", revenue_diff_by_hour_dict)
+            print("\nrevenue_diff_by_hour_dict", revenue_diff_by_hour_dict)
             fill_sublevel_tabs_with_insights(worst_performer_both, worst_time_both, best_performer_both, best_time_both,\
-                                        average_hourcups_both, above_avg_hc_both, below_avg_hc_both, hourcups_dict_both)
+                                            average_hourcups_both, above_avg_hc_both, below_avg_hc_both, hourcups_dict_both,\
+                                            overperformed_by_dict_both, hc_std_dict_both, hc_std_both, revenue_by_hour_dict_both,\
+                                            total_revenue_both, total_volume_both, highest_sd_hours_both, rev_diff_dict=revenue_diff_by_hour_dict)
 
         with insightItem1Tab:
             # ---- ITEMS 1 ----
             st.markdown("*Note - Currently Insights are only for the full date range, not week by week*")
             fill_sublevel_tabs_with_insights(worst_performer_1, worst_time_1, best_performer_1, best_time_1,\
-                                        average_hourcups_1, above_avg_hc_1, below_avg_hc_1, hourcups_dict_1)
+                                            average_hourcups_1, above_avg_hc_1, below_avg_hc_1, hourcups_dict_1,\
+                                            overperformed_by_dict_1, hc_std_dict_1, hc_std_1, revenue_by_hour_dict_1,\
+                                            total_revenue_1, total_volume_1, highest_sd_hours_1, price_of_item=price_of_item_1)
 
         with insightItem2Tab:
             # ---- ITEMS 2 ----
             st.markdown("*Note - Currently Insights are only for the full date range, not week by week*")
             fill_sublevel_tabs_with_insights(worst_performer_2, worst_time_2, best_performer_2, best_time_2,\
-                                        average_hourcups_2, above_avg_hc_2, below_avg_hc_2, hourcups_dict_2)
+                                            average_hourcups_2, above_avg_hc_2, below_avg_hc_2, hourcups_dict_2,\
+                                            overperformed_by_dict_2, hc_std_dict_2, hc_std_2, revenue_by_hour_dict_2,\
+                                            total_revenue_2, total_volume_2, highest_sd_hours_2, price_of_item=price_of_item_2)
         
         
+        
+        # handy vars
+        print("hourcups_dict_1", hourcups_dict_1)  # same as hcd_sort_by_value_1
+        print("overperformed_by_dict_1", overperformed_by_dict_1)
+        print("hc_std_dict_1", hc_std_dict_1)
+        print("hc_std_1", hc_std_1)
+        print("worst_time_1, best_time_1", worst_time_1, best_time_1)
+        print("worst_performer_1, best_performer_1", worst_performer_1, best_performer_1)
+        print("above_avg_hc_1, below_avg_hc_1", above_avg_hc_1, below_avg_hc_1)
+        print("revenue_by_hour_dict_1", revenue_by_hour_dict_1)
+        # print revenue_diff_by_hour_dict is above
+        print("price for item 1 = ", f"$", price_of_item_1, sep='')
+        print("total revenue for item 1 = ", f"$", f"{total_revenue_1:.2f}", sep='')
+        print("total_volume_1", total_volume_1)
+        print("total_revenue_both", total_revenue_both)
 
 
+    stc.html(TEST_CARD_HTML.format(), height=1200)
 
 
 
 # OK SO NEXT/RN
+# DO CARDS, DO INSIGHTS, PORTFOLIO MODE, BE DONE WITH IT (do other stuff!)
+
 
 # then get the initial card layout thing done and dusted (hella basic, will improve shortly) 
 # - legit just start doing this as combo for item 1 and both, including all the new stuff then just continue
