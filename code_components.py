@@ -304,13 +304,13 @@ rel="stylesheet">
 </div>
 <div class="row1-container">
 <div class="box box-down cyan">
-<h2>{1}<br>{2} crushing it!</h2>
+<h2>{1}<br>{2} on fire!</h2>
 <p>{3}x over the standard deviation in average product sales per hour</p>
 <img src="https://thehardgainerbible.com/wp-content/uploads/2022/07/hot-sale_64.png" alt=""> 
 </div>
 
 <div class="box red">
-<h2>{6} {8} The Money Makers</h2>
+<h2>{6} {8}</h2>
 <p>These hours drastically outperformed the average hourly sales by {7} (volume)... </p>
 <img src="https://thehardgainerbible.com/wp-content/uploads/2022/07/increase_64.png" alt="">
 </div>
@@ -323,7 +323,7 @@ rel="stylesheet">
 </div>
 <div class="row2-container">
 <div class="box orange">
-<h2>{4} cups sold</h2>
+<h2>{4:.0f} cups sold</h2>
 <p>For a total revenue of ${5:.2f}</p>
 <img src="https://thehardgainerbible.com/wp-content/uploads/2022/07/coffee-cup_64.png" alt="">
 </div>
@@ -335,21 +335,7 @@ rel="stylesheet">
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+# sumnt we're seeing rapid growth
 # <h2>{0} Is Highly Popular</h2>
 # <p>At {0} we're seeing {1}x the standard deviation in sales for {2}</p>
 # are all performing strongly, and are over the average hourly sales<br>- Make sure dedicated staff are available during these hours

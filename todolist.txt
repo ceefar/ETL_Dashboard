@@ -50,3 +50,79 @@ dashboard stuff
     - hate to say it but probably best to rewrite dashboard page now as is just a mess & nothing is working lol
     - plan it, keep it simple, and it will be easy tbf
     - and dont forget to add in portfolio mode stuff 
+
+
+
+
+# FOR THURSDAY - TECHNICAL TASK START
+######################################
+# of the 2 new ideas, atomic, and streamfit (and fuck it maybe if you wanna do sumnt new whatever but...)
+# TRY TO DO THE THING THATS MOST DE RELEVANT, THINK DATABASES AND PIPELINES
+# - tho also please learn multithreading too and implement it
+# i mean shit tbf maybe even, improve the backend of this, i.e. the returning customers stuff, then we can get customer value and shit
+# then even add in theoretical cost of goods so can do profit margins
+# plus ci/cd, unittests, class based structure, all the things i wanted to do if my team wasnt fucking useless (things other people got to learn because they had double the team size even when i asked for support urghhh breathe ceefar lol)
+# obvs regardless of what you decide, even if it is continuing this, still try to do some DE relevant stuff, pipeline, db, optimisation
+# on top of stuff you wanna do with data vis, web app, and general improvements
+
+
+# TODO NOTES IM WORKING WITH FROM APP_INSIGHTS.py 
+
+# OK SO NEXT/RN
+# DO CARDS, DO INSIGHTS, PORTFOLIO MODE, BE DONE WITH IT (do other stuff!)
+
+# then get the initial card layout thing done and dusted (hella basic, will improve shortly) 
+# - legit just start doing this as combo for item 1 and both, including all the new stuff then just continue
+
+# then do a tidbit more on insights here
+# - overperformed by how much
+# - if multiple sizes of same item get sumnt regardless of how basic (hmmm come back to this tbf - shouldnt be too hard tho)
+# - calculate actual revenue duh, use a diff type of chart too
+#   - consider bump chart, maybe not for here tbf actually https://altair-viz.github.io/gallery/bump_chart.html
+
+# then fully finish up the actual insights bit - have explanation text and see image on tablet for help btw
+
+# then
+# get dates working
+# then do portfolio mode a bit
+
+# then (????) do new page - all store products with dates (basically copy just no long user input stuff)
+# and do insights on that
+# if you want anything compare wise just to straight up 2 stores
+# note charts n shit will be different but this is true/better insights
+
+# then once 2nd page is done LEGIT do other small project ideas
+# also be sure to clean up fully, even maybe with a cleaned version and a working (on) version
+# - obvs need portfolio mode too!
+
+# - actual fucking insights
+# - move the functs outside of run
+# - date ranges (just 1 more or maybe even just skip for now tbh)
+#   - ensure single day still works perfectly
+#   - if this continues to be iffy, move it to 2nd place so that first thing on tab is between 2 dates (as errors less)
+#   - on my current critical error handling ting add a button that the user can press!
+# - test multithreading with args and return values (can try on a new page duh)
+
+# - wtf random markdown number, comments, ideally starting on a monday or sunday if is easy enough (should be tbf but should skip this)
+# - logging, unittest, ci/cd basics
+
+# - tab stuff like title subtitle etc
+# - generally move functions, ig and comment and clean up a bit quickly
+# - ensure single day is still working fine btw (ideally with no tabs showing) 
+# - obvs 100 needs portfolio mode before done, oh and advanced mode too maybe but idk
+    # - at this point also... due to the db.get_from function error 
+        # - move everything that was a db.get_from, from here to db_integration
+        # - then use code snippets in a different new module for portfolio mode!
+# - the calendar print
+    # - also tho owt else could do with artist?
+# - hella error handling and see if i can get this shit with the connection to work cause if that always breaks rip portfolio
+# - jazz shit up a teeny bit (gifs n shit)
+# - finally tidy up then leave it for now
+# - also things like github/website image thing btw
+# - also check history to find that kid that had the exact same condition as me as can't remember what else he posted
+
+# NO CAP, ONCE THIS INSIGHTS IS DONE MOVE ON TO OTHER (QUICKER PROJECTS LIKE 2 IDEAS AM JUST GUNA COPY AND CANCER TING)
+# - one was the map idea (best suited area for you, could add in whatever user selects I want tbh but house price and like council tax, average shop sumnt is good start)
+# - other was skal.es week time thing
+# - obvs my other 2 projects but really just the new atmoic which is 80HD, focus on just one thing ffs get that done and live with user login and db stuff then and only then move on
+
