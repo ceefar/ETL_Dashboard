@@ -30,7 +30,7 @@ def highlight_calendar(weeknumb:int, actualweeknumb:int) -> str:
     imgDraw = ImageDraw.Draw(img)
 
     # save the bg before adding rectangle highlight
-    img.save(imgpath)
+    #img.save(imgpath)
 
     # ---- start rectangle ----
 
