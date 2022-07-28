@@ -1,6 +1,7 @@
 # ---- IMPORTS ----
 
 # for web app 
+from pkg_resources import cleanup_resources
 import streamlit as st
 import streamlit.components.v1 as stc
 from streamlit.errors import StreamlitAPIException, DuplicateWidgetID
@@ -8,6 +9,8 @@ from streamlit.errors import StreamlitAPIException, DuplicateWidgetID
 import datetime
 # for db integration
 import db_integration as db
+# for dynamic image creation
+import artist as arty
 # for images and img manipulation
 import PIL
 # for data manipulation
@@ -27,12 +30,18 @@ from code_components import TEST_CARD_HTML, FOUR_CARD_INFO
 #from streamlit import legacy_caching
 
 
+# ---- BUGS/ISSUE LOG ----
+# - tabs cause a jump to the bottom of the current tabs viewport, is new streamlit module so likely to be bugfixed
+#   - could temp fix by swapping to expanders?
+
+
 # ---- LOGGER ----
 
+# TODOASAP - FIX THIS WTF
 # create and configure insights page logger, all log levels, custom log message, overwrites file per run instead of appending [.debug / .info / .warning / .error / .critical ]
 LOG_FORMAT = "%(levelname)s %(asctime)s - %(message)s"
 # i swear this doesn't work wtf
-logging.basicConfig(filename = "C:\\Users\\robfa\\Downloads\\ETL_Dashboard\\applogs\\insights.log", level = logging.DEBUG, format = LOG_FORMAT, filemode = "w")
+logging.basicConfig(filename = "insights.log", level = logging.DEBUG, format = LOG_FORMAT, filemode = "w")
 logger = logging.getLogger()
 
 
@@ -387,7 +396,6 @@ def get_dicts_for_above_below_avg_cups(hourcups_dict:dict, average_hourcups:int)
     return(above_avg_hourcups, under_avg_hourcups)
 
 
-
 # TODOASAP - TYPE HINTS HERE PLS (ik its long but pleeeeease)
 # TODOASAP - also how about just dont run this, and other, functions if the df is empty duh
 def create_hourcups_insights_data(hourcups_dict, hcd_sort_by_value):
@@ -545,6 +553,85 @@ def create_dataframe_setup_chart(just_names_list_1_range, just_cupcount_list_1_r
     return((bar_chart, chart_text))
 
 
+# ---- PURELY DATE/TIME BASED FUNCTION ----
+
+def make_dt_next_week_basic(display_date:str, add_days:int = 8) -> str:
+    """
+    //desc - takes string date, makes it dt object, adds 8 days to it so it starts from the next week,
+                optional add_days param for also specifying the amount of days which defaults to 8
+                note doesn't do anything with start date of week i.e. monday
+    //param - date [as string], optional amount of days [as int] 
+    //returns - date + 8 days [as string]
+    """
+    # cover to datetime object
+    date_as_dt = datetime.datetime.strptime(display_date, '%Y-%m-%d').date()
+    # use the user defined days else use 8 days to get the next week, note is not 7 as its exclusive at one end
+    days_to_add = add_days if add_days != 8 else 8
+    # add the amount of days to the given date
+    date_next_week = date_as_dt + datetime.timedelta(days=days_to_add)
+    # return the result
+    return(date_next_week)
+
+
+def get_commencing_week_from_weektab(display_date:str, weektab:int):
+    """
+    //desc - for commencing week using only the tab numbers (e.g. 1, 2, 3, etc), but not week 0 as doesn't need to be altered
+                takes the week number and runs get next week function for the needed amount of extra days from the first date
+                note - thinking about it should have done this recursively and returned as a chunk (tuple) ?
+    //param - date [as string], tab of the week number ranging from 1 to 5 [as int]
+    //returns - date + 8 days [as string]
+    """
+    # get the amount of days to add from the tabs week number * 7 days, + 1
+    extra_days_to_add = (weektab*7) + 1 
+    # call function to make the calculation and get the result
+    next_week_date = make_dt_next_week_basic(display_date, extra_days_to_add)
+    # reformat the final date so its prettier
+    clean_next_week_date = datetime.datetime.strftime(next_week_date, "%d %B %Y")
+    # return the result
+    return(clean_next_week_date)
+
+
+# ---- ERRORS & DEBUGGING FUNCTIONS ----
+
+# TODOASAP - doesnt log but it should duh!
+def thats_how_we_play_handy_hands(var_chunk:tuple = (), play_handy_hands:bool = False):
+    """ turn on to print some handy variables to console... its a rick and morty reference [https://www.youtube.com/watch?v=0HAbLnpq52o&ab_]"""
+    # use bool and a function as its easier to turn on off as a chunk and make bulk changes
+    if play_handy_hands:
+        # unpack vars
+        hourcups_dict, overperformed_by_dict, hc_std_dict, hc_std, worst_time, best_time,\
+        worst_performer, best_performer, above_avg_hc, below_avg_hc, revenue_by_hour_dict,\
+        price_of_item, total_revenue, total_volume = var_chunk
+        # print the handy vars
+        print("hourcups_dict", hourcups_dict)  # same as hcd_sort_by_value_1
+        print("overperformed_by_dict", overperformed_by_dict)
+        print("hc_std_dict", hc_std_dict)
+        print("hc_std", hc_std)
+        print("worst_time, best_time", worst_time, best_time)
+        print("worst_performer, best_performer", worst_performer, best_performer)
+        print("above_avg_hc, below_avg_hc", above_avg_hc, below_avg_hc)
+        print("revenue_by_hour_dict", revenue_by_hour_dict)
+        # should print revenue_diff_by_hour_dict but it's not chunked with everything else so leaving it
+        print("price for item = ", f"$", price_of_item, sep='')
+        print("total revenue for item = ", f"$", f"{total_revenue:.2f}", sep='')
+        print("total_volume", total_volume)
+
+
+# old error message that have resolved the error for, but may reimplement the display part in future so leaving as function
+def display_db_conn_error_msg():
+    """ print error message and provide buttons to refresh and fix the app """
+    # print the message
+    ERROR_MSG_1 = """(╯°□°）╯︵ ┻━┻\n
+    Critical Error Averted\n
+    It's A DB Connection Bug [not a duplicate error, silly streamlit]\n
+    Change any field or push the button in the sidebar/below to rerun"""
+    st.error(ERROR_MSG_1)
+    # pressing any button (not necessarily these) will reset the app state, but provide some clear options to the user
+    st.button("Push Me - I Don't Bite", key="pushme2")
+    st.sidebar.warning("Push The Button To Re-Run")
+    st.sidebar.button("ReRun App", key="pushme1")
+
+
 # ---- MAIN WEB APP ----
 
 def run():
@@ -602,6 +689,9 @@ def run():
         st.markdown("#### Advanced Mode")
         st.write("For more advanced query options")
         advanced_options_1 = st.checkbox("Advanced Mode", value=True, disabled=True) 
+
+        st.write("##")
+        st.markdown("*Note - Dashboard is designed for desktop*")
     
 
     # ---- HEADER ----
@@ -618,25 +708,46 @@ def run():
 
     # ---- USER SELECTS + VISUAL CLARITY ----
 
-    def last_active_tab(the_tab:str = "off", want_return:bool = False):
-        """ write me """
+    def last_active_tab(the_tab:str = "off", want_return:bool = False) -> None|int:
+        """ 
+        //desc - write me
+        //param - write me
+        //returns - for technical return, its the date from the last active tab [as datetime.date object]
+                    for the actual (stupid) return its the last active tab number/key [as int]
+        """
 
         # use a session state var to persist the last active tab
         last_active_date_tab = st.session_state["last_active_date_tab"]
 
-        # temp test for easy date display, last active date tab sessionstate is kinda buggy and running outside of on_change so might remove
+        # new session state for easy date display because last active date tab sessionstate is kinda buggy and running outside of on_change so might remove
+        # for single day
         if last_active_date_tab == 1:
             st.session_state["active_date_1"] = selected_date_1
             # guna just check if date 2 is this date, if it is dont print it
             st.session_state["active_date_2"] = datetime.date(2000, 1, 1)
+        # for between 2 dates    
         elif last_active_date_tab == 2:
             st.session_state["active_date_1"] = selected_date_2_start
             st.session_state["active_date_2"] = selected_date_2_end
-        # obvs would need for tab 3, 4 etc but is fine for now
+        # for single week (bit long winded but is fine)
+        elif last_active_date_tab == 3:
+            # for single week first grab just the date from the string
+            to_make_date = selected_date_3[10:]
+            # then make a query to get the date in the future (yes ik, i actually have a function for this now but just leaving this as is for now)
+            end_of_week = str(make_dt_next_week_basic(to_make_date, 6))
+            # convert these strings to have times so that strptime actually works on them
+            to_make_date = to_make_date + " 00:00:00.000000"
+            end_of_week = end_of_week + " 00:00:00.000000"
+            # convert the string dates to datetime objects, and then to date objects 
+            date_1 = datetime.datetime.strptime(to_make_date, '%Y-%m-%d %H:%M:%S.%f').date()
+            date_2 = datetime.datetime.strptime(end_of_week, '%Y-%m-%d %H:%M:%S.%f').date()
+            # set the result to session states as the correct type
+            st.session_state["active_date_1"] = date_1
+            st.session_state["active_date_2"] = date_2
 
-        # switch case to either return the last active tab or store it
+        # ngl this is so dumb, if want return just use the session state var but whatever
         if want_return:
-                # ngl this is so dumb, if want return just use the session state var but whatever
+                # switch case to either return the last active tab or store it
                 return(last_active_date_tab) 
         else:
             st.session_state["last_active_date_tab"] = the_tab
@@ -651,9 +762,13 @@ def run():
 
         # ---- STORE SELECT ----
         selected_stores_1 = st.multiselect("Choose The Store/s", options=base_stores_list, default=["Chesterfield"])
+
+    userSelectCol2, _, calendarCol = st.columns([5,1,5]) 
+    with userSelectCol2:
         
         # ---- DATE SELECT ----
-        dateTab2, dateTab1, dateTab3, dateTab4, dateTab5, dateTabs6 = st.tabs(["Between 2 Dates", "Single Day", "Single Week", "Mulitple Weeks", "Full Month", "All Time"]) # multiple weeks is a maybe rn btw
+        #dateTab2, dateTab1, dateTab3, dateTab4, dateTab5, dateTabs6 = st.tabs(["Between 2 Dates", "Single Day", "Single Week", "Mulitple Weeks", "Full Month", "All Time"]) 
+        dateTab2, dateTab1, dateTab3, dateTab4 = st.tabs(["Between 2 Dates", "Single Day", "Single Week", "Mulitple Weeks"]) 
         
         def force_date_run_btn(run_button_key:str):
             """ write me """
@@ -665,14 +780,14 @@ def run():
         with dateTab1:
             selected_date_1 = st.date_input("What Date Would You Like Info On?", datetime.date(2022, 7, 5), max_value=last_valid_date, min_value=first_valid_date, on_change=last_active_tab, args=[1], key="TODO")  
             st.write("##")
-            st.button("Get Insights", help="To Get New Insights : change the date, press this button, use physic powers", key="run_1", on_click=force_date_run_btn, args=["run_1"])
+            st.button("Get Insights For This Date", help="To Get New Insights : change the date, press this button, use physic powers", key="run_1", on_click=force_date_run_btn, args=["run_1"])
 
         # ---- BETWEEN 2 DAYS ----
         with dateTab2:
             selected_date_2_start = st.date_input("What Start Date?", datetime.date(2022, 7, 1), max_value=last_valid_date, min_value=first_valid_date, on_change=last_active_tab, args=[2], key="TODO2")  
             selected_date_2_end = st.date_input("What End Date?", datetime.date(2022, 7, 8), max_value=last_valid_date, min_value=first_valid_date, on_change=last_active_tab, args=[2], key="TODO3")
             st.write("##")
-            st.button("Get Insights", help="To Get New Insights : change the date, press this button, use physic powers", key="run_2", on_click=force_date_run_btn, args=["run_2"])
+            st.button("Get Insights For These Dates", help="To Get New Insights : change the date, press this button, use physic powers", key="run_2", on_click=force_date_run_btn, args=["run_2"])
             # TODO - print days between dates here 
 
         # ---- SINGLE WEEK ----
@@ -695,7 +810,7 @@ def run():
             # TODO - add the actual first date instead of just an int and get the img ting sorted too
             selected_date_3 = st.selectbox("Which Week?", options=stores_available_weeks_formatted, key="TODO4", help="Date shown is week commencing. Weeks start on Monday", on_change=last_active_tab, args=[3])
             st.write("##")
-            st.button("Get Insights", help="To Get New Insights : change the date, press this button, use physic powers", key="run_3", on_click=force_date_run_btn, args=["run_3"])        
+            st.button("Get Insights For This Week", help="To Get New Insights : change the date, press this button, use physic powers", key="run_3", on_click=force_date_run_btn, args=["run_3"])        
         
         # ---- MULTIPLE WEEKS [NOT IMPLEMENTED YET] ----
         with dateTab4:
@@ -706,9 +821,10 @@ def run():
                 multiweek_default = [stores_available_weeks[0]]
             selected_date_4 = st.multiselect("Which Weeks?", options=stores_available_weeks, default=multiweek_default, key="TODO5", help="See 'Single Week' for week commencing date", on_change=last_active_tab, disabled=True, args=[4])
             # TODO - obvs have this on the right hand side with the img ting and ig like completeness too (total days && available days)
-            st.write(f"Total Days = {len(selected_date_4) * 7}")
+            st.info("Functionality Coming Soon")
+            #st.write(f"Total Days = {len(selected_date_4) * 7}")
             st.write("##")
-            st.button("Get Insights", help="To Get New Insights : change the date, press this button, use physic powers", key="run_4", on_click=force_date_run_btn, args=["run_4"])        
+            st.button("Get Insights For These Weeks", help="To Get New Insights : change the date, press this button, use physic powers", key="run_4", on_click=force_date_run_btn, args=["run_4"], disabled=True)        
 
     # var that holds the key/on_change args from each date select plus the variables that store the result, used for getting the last active tab
     use_vs_selected_date_dict = {1:selected_date_1, 2:(selected_date_2_start, selected_date_2_end), 3:selected_date_3, 4:selected_date_4}
@@ -747,7 +863,7 @@ def run():
 
     # print function for images
     def print_on_off_stores(selected_stores_list:list, img_dict:dict):
-        """ prints out the 5 store images as either on or off (saturated) based on whether they were selected, see comment for refactor"""
+        """ prints out the 5 store images as either on or off (saturated) based on whether they were selected, see comment for refactor """
         # if you actually pass in the dict (and they always have cols + imgs, and same key names) then this could be reformatted to be multipurpose
         for store_name in base_stores_list:
                 if store_name in selected_stores_list:
@@ -763,14 +879,20 @@ def run():
         pass
 
 
-    # TODO 
-    # ---- VISUAL CLARITY CALENDAR PRINT (TO-DO) ----
+    # ---- VISUAL CLARITY CALENDAR PRINT ----
 
-    # should cache artist prints btw as will be atleast somewhat computationally expensive
-    # june_start_weeknumb = 22
-    # highlight_week = weeknumberselect - june_start_weeknumb
-    # calendar_highlight = arty.highlight_calendar(highlight_week, weeknumberselect, week_array)
-    # weekBreakdownCol2.image(calendar_highlight)         
+    # TODOASAP - do properly, do as function, do error handling, cache it(properly), dynamic functionality for tab 1 and 2!
+    # 100% as a function and cached otherwise is creating a dynamic image everytime when it reeeally isn't needed
+    # but save the functionality (dont convert to just X_select = print X_image) as can do dynamically for between 2 dates and single day too
+    if st.session_state["last_active_date_tab"] == 3:
+        june_start_weeknumb = 22
+        weeknumberselect = int(selected_date_3[5:8])
+        highlight_week = weeknumberselect - june_start_weeknumb
+        # calendar_highlight = arty.highlight_calendar(highlight_week, weeknumberselect, week_array)
+        calendar_highlight = arty.highlight_calendar(highlight_week, weeknumberselect)
+        calendarCol.image(calendar_highlight) 
+        
+   
 
 
     # ---- DIVIDER ----
@@ -1136,29 +1258,35 @@ def run():
         # or chuck in the date range if its between two dates
         display_date_1 = str(st.session_state["active_date_1"])
         display_date_2 = str(st.session_state["active_date_2"])
+        # lightly format to clean these up too
+        clean_display_date_1 = datetime.datetime.strftime(st.session_state["active_date_1"], "%d %B %Y")
+        clean_display_date_2 = datetime.datetime.strftime(st.session_state["active_date_2"], "%d %B %Y")
 
 
         # TODOASAP - THE DATE HERE WOULD BE WAAAAY BETTER AS SUBTITLE DUHHHH!
-        chartTab_dict = {0:(chartTab0, f"{f'All Dates [{display_date_1} to {display_date_2}]' if weeks_between_dates != 0 else date_as_word}", (just_names_list_1_all, just_cupcount_list_1_all, just_hour_list_1_all)),
-                            1:(chartTab1, "First Week", (just_names_list_1_w0, just_cupcount_list_1_w0, just_hour_list_1_w0)),
-                            2:(chartTab2, "Some Title", (just_names_list_1_w1, just_cupcount_list_1_w1, just_hour_list_1_w1)),
-                            3:(chartTab3, "Some Title", (just_names_list_1_w2, just_cupcount_list_1_w2, just_hour_list_1_w2)),
-                            4:(chartTab4, "Some Title", (just_names_list_1_w3, just_cupcount_list_1_w3, just_hour_list_1_w3)),
-                            5:(chartTab5, "Some Title", (just_names_list_1_w4, just_cupcount_list_1_w4, just_hour_list_1_w4)),
-                            6:(chartTab6, "Some Title", (just_names_list_1_w5, just_cupcount_list_1_w5, just_hour_list_1_w5))
+        chartTab_dict = {0:(chartTab0, f"{f'All Dates' if weeks_between_dates != 0 else date_as_word}", (just_names_list_1_all, just_cupcount_list_1_all, just_hour_list_1_all), f"{f'{clean_display_date_1} to {clean_display_date_2}' if weeks_between_dates != 0 else date_as_word}"),
+                            1:(chartTab1, "First Week", (just_names_list_1_w0, just_cupcount_list_1_w0, just_hour_list_1_w0), f"Commencing {clean_display_date_1}"),
+                            2:(chartTab2, "Some Title", (just_names_list_1_w1, just_cupcount_list_1_w1, just_hour_list_1_w1), f"Commencing {get_commencing_week_from_weektab(display_date_1, 1)}"),
+                            3:(chartTab3, "Some Title", (just_names_list_1_w2, just_cupcount_list_1_w2, just_hour_list_1_w2), f"Commencing {get_commencing_week_from_weektab(display_date_1, 2)}"),
+                            4:(chartTab4, "Some Title", (just_names_list_1_w3, just_cupcount_list_1_w3, just_hour_list_1_w3), f"Commencing {get_commencing_week_from_weektab(display_date_1, 3)}"),
+                            5:(chartTab5, "Some Title", (just_names_list_1_w4, just_cupcount_list_1_w4, just_hour_list_1_w4), f"Commencing {get_commencing_week_from_weektab(display_date_1, 4)}"),
+                            6:(chartTab6, "Some Title", (just_names_list_1_w5, just_cupcount_list_1_w5, just_hour_list_1_w5), f"Commencing {get_commencing_week_from_weektab(display_date_1, 5)}")
                         }
+
 
         # procedurally generate the charts based on the dynamic datasets
         for i in range(0,7):
             # randomly changed to camelcase but meh
             # better title names as this is the tab name too? (also subtitles pls) defo include the actual dates DUHHHHH
-            theTab, theTitle, theDataset = chartTab_dict[i][0], chartTab_dict[i][1], chartTab_dict[i][2]
+            theTab, theTitle, theDataset, theSubTitle = chartTab_dict[i][0], chartTab_dict[i][1], chartTab_dict[i][2], chartTab_dict[i][3]
             
             with theTab:
                 # grab the data for the chart based on the dates
                 barchart, barchart_text = create_dataframe_setup_chart(theDataset[0], theDataset[1], theDataset[2])
                 # render the chart
-                st.markdown(f"#### {theTitle}")
+                st.markdown(f"### {theTitle}")
+                st.markdown(f"##### {theSubTitle}")
+                st.write("##")
                 st.altair_chart(barchart + barchart_text, use_container_width=True)
 
 
@@ -1232,6 +1360,9 @@ def run():
             last two parameters are default args since they based on if function runs for item 1 or 2 (price of item), or both items (revenue diff dict)
             """
 
+
+            # TODOASAP - MAKE THESE FUNCTIONS DUH!
+
             # a simple boolean flag so we know if we are dealing with solo items or both, relevant for any calculation/print using price_of_item
             is_solo_item = True if price_of_item > 0 else False
 
@@ -1295,7 +1426,6 @@ def run():
             else:
                 display_date_string = display_date_insights_1
 
-
             # add am/pm to the hours by applying the function using map
             highest_hours_string_list = list(map(give_hour_am_or_pm, highest_sd_hours))
             highest_sd_multiplier = max(list(hc_std_dict.values()))             
@@ -1320,6 +1450,9 @@ def run():
                 display_sd_hours = " "
                 is_or_are = " "
 
+            # END NEW TESTING AREA STUFF FOR THIS FUNCTION
+
+
             # obviously rename these tabs, add subtitles and explanation text (be succinct tho pls)
             insightTab1, insightTab2, insightTab3 = st.tabs(["Core Insights", "Detailed Insights", "More Insights"])
             
@@ -1329,7 +1462,8 @@ def run():
 
             # ---- CORE INSIGHTS - CARDS ----
             with insightTab1:
-                stc.html(FOUR_CARD_INFO.format(display_date_string, display_sd_hours, is_or_are, f"{highest_sd_multiplier:.0f}", total_volume, total_revenue, display_op_hours, display_op_volume, is_or_are_2, average_hourcups), height=1500)
+                st.write("Take action without the effort with this easy to digest snapshot which showcases key insights from the data you've selected, don't forget to hit the tabs above to discover more")
+                stc.html(FOUR_CARD_INFO.format(display_sd_hours, is_or_are, f"{highest_sd_multiplier:.0f}", total_volume, total_revenue, display_op_hours, display_op_volume, is_or_are_2, average_hourcups, display_date_string), height=1000)
             
             # ---- INSIGHT DETAILS - TEXT ----
             with insightTab2:
@@ -1370,6 +1504,18 @@ def run():
                     st.altair_chart(pie_crust + pie_decotation, use_container_width=True)   
 
 
+
+        # so for second tab, lets get average sales with revenue and stuff first card - including over/under hours stuff?
+        # then another card with those hour specifics
+        # then last card just whatever the hell else is left
+        # then the chart
+        # then do portfolio mode
+        # then bounce to new stuff tbh and come back to this after a break 
+        # (to do the all stores week by week insights (taking ALL data so can properly compare a week to the weekly avgs for example!))
+
+
+
+
         # ---- CREATE & DISPLAY INSIGHTS PROGRAMATICALLY ----
     
         # initialise tabs, named dynamically based on (main) item name
@@ -1404,29 +1550,13 @@ def run():
                                             total_revenue_2, total_volume_2, highest_sd_hours_2, price_of_item=price_of_item_2)
         
 
-        def thats_how_we_play_handy_hands(play_handy_hands:bool = False):
-            """ turn on to print some handy variables to console... its a rick and morty reference [https://www.youtube.com/watch?v=0HAbLnpq52o&ab_]"""
-            # use bool and a function as its easier to turn on off as a chunk and make bulk changes
-            if play_handy_hands:
-                # print the handy vars
-                print("hourcups_dict_1", hourcups_dict_1)  # same as hcd_sort_by_value_1
-                print("overperformed_by_dict_1", overperformed_by_dict_1)
-                print("hc_std_dict_1", hc_std_dict_1)
-                print("hc_std_1", hc_std_1)
-                print("worst_time_1, best_time_1", worst_time_1, best_time_1)
-                print("worst_performer_1, best_performer_1", worst_performer_1, best_performer_1)
-                print("above_avg_hc_1, below_avg_hc_1", above_avg_hc_1, below_avg_hc_1)
-                print("revenue_by_hour_dict_1", revenue_by_hour_dict_1)
-                # should print revenue_diff_by_hour_dict but it's not chunked with everything else so leaving it
-                print("price for item 1 = ", f"$", price_of_item_1, sep='')
-                print("total revenue for item 1 = ", f"$", f"{total_revenue_1:.2f}", sep='')
-                print("total_volume_1", total_volume_1)
-                print("total_revenue_both", total_revenue_both)
+        # general debugging
+        
+        item1_vars = (hourcups_dict_1, overperformed_by_dict_1, hc_std_dict_1, hc_std_1, worst_time_1, best_time_1, 
+                        worst_performer_1, best_performer_1, above_avg_hc_1, below_avg_hc_1, revenue_by_hour_dict_1, 
+                        price_of_item_1, total_revenue_1, total_volume_1)
 
-        thats_how_we_play_handy_hands(play_handy_hands=True)
-
-
-
+        thats_how_we_play_handy_hands(item1_vars, play_handy_hands=False)
 
 
 # ---- DRIVER ----
@@ -1435,7 +1565,7 @@ if __name__ == "__main__":
         run()
     # if the connection errors, wipe the entire cache, then show user rerun button which fixes issue (using any widget will do the same)
     except mysql.connector.errors.OperationalError as operr:
-        # note have removed the singleton from the connection which seems to resolve previous conn errors but leaving the error handling anyway
+        # note this error mostly happens due to local save causing the old connection to not work anymore as its cached in singleton
         # log error messages
         logger.error("ERROR! - (╯°□°）╯︵ ┻━┻")
         logger.info("What The Connection Doin?")
@@ -1443,20 +1573,9 @@ if __name__ == "__main__":
         # wipe the cache thoroughly
         st.experimental_memo.clear()
         st.experimental_singleton.clear()
-        # display error info amd resolution (press button) to the user
-        ERROR_MSG_1 = """(╯°□°）╯︵ ┻━┻\n
-        Critical Error Averted\n
-        It's A DB Connection Bug [not a duplicate error, silly streamlit]\n
-        Change any field or push the button in the sidebar/below to rerun"""
-        st.error(ERROR_MSG_1)
-        st.button("Push Me - I Don't Bite", key="pushme2")
-        st.sidebar.warning("Push The Button To Re-Run")
-        st.sidebar.button("ReRun App", key="pushme1")
-        conn = db.init_connection()
-        #run()
-        #legacy_caching.clear_cache()
-        #st.experimental_rerun
-        #raise RerunException(run)
+        # rerun the app
+        st.experimental_rerun()
+
         
     except DuplicateWidgetID as dupwid:
         logger.error("ERROR! - (╯°□°）╯︵ ┻━┻")

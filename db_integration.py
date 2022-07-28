@@ -12,7 +12,7 @@ import streamlit as st
 # TODOASAP remove or keep singleton decorator but decide ffs 
 # https://docs.streamlit.io/library/api-reference/performance/st.experimental_singleton
 
-#@st.experimental_singleton
+@st.experimental_singleton
 def init_connection():
     return mysql.connector.connect(**st.secrets["mysql"])
 

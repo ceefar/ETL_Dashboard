@@ -28,6 +28,7 @@ insights stuff
     - get main items from store new table (with stores) asap as this is the most computationally expensive query so far it seems
     - tidy up and comment
 
+
 # THEN (tbf before other project stuff)
 # IMG OF MUG ON WEBSITE AND CONFIRM ITS CLEAN - FFS ENSURE HAVE A "DESKTOP ONLY" THING IF UR ON MOBILE OR TABLET
     - i.e. my end bit could use a tidy up too ig
@@ -53,6 +54,9 @@ dashboard stuff
 
 
 
+
+# INSIGHTS & PORTFOLIO MODE
+
 # FOR THURSDAY - TECHNICAL TASK START
 ######################################
 # PORTFOLIO MODE FIRST FFS! - AND FINISH ANYTHING ELSE PRESSING BUT JUST FOR LIKE A FEW HOURS
@@ -65,6 +69,13 @@ dashboard stuff
 # obvs regardless of what you decide, even if it is continuing this, still try to do some DE relevant stuff, pipeline, db, optimisation
 # on top of stuff you wanna do with data vis, web app, and general improvements
 # also maybe do one of those 2 new ideas regardless as they are super simple in comparison to other stuff
+
+# when coming back to this dont forget the idea of the all compare (true insights)
+# to do the all stores week by week insights - taking ALL data so can properly compare a week to the weekly avgs for example!
+# TODOASAP - also a final version of my website and github vids/screens pls :D
+
+
+
 
 
 # TODO NOTES IM WORKING WITH FROM APP_INSIGHTS.py 

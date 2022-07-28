@@ -91,41 +91,40 @@ color: #545d7a;
 <div class="container">
 <div class="card">
 <div class="card-header">
-<img src="https://c0.wallpaperflare.com/preview/483/210/436/car-green-4x4-jeep.jpg" alt="rover" />
+<img src="https://nmgprod.s3.amazonaws.com/media/files/86/53/8653b96f15861cf643cc136bf94db701/cover_image_1587766077.jpg.760x400_q85_crop_upscale.jpg" alt="rover" />
 </div>
 <div class="card-body">
-<span class="tag tag-teal">Technology</span>
+<span class="tag tag-teal">Popularity Insights</span>
 <h4>
-    Why is the Tesla Cybertruck designed the way it
-    is?
+    What's Hot & What's Not - Top Sellers & Averages
 </h4>
 <p>
-    An exploration into the truck's polarising design
+    Average sales is an important metric as it gives us insight on a very important metric, and that's popularity. So average sales were X, but these hours performed over that by Y volume/sales for Z revenue. Here's some more stats A.
 </p>
 <div class="user">
-    <img src="https://yt3.ggpht.com/a/AGF-l7-0J1G0Ue0mcZMw-99kMeVuBmRxiPjyvIYONg=s900-c-k-c0xffffffff-no-rj-mo" alt="user" />
+    <img src="https://thehardgainerbible.com/wp-content/uploads/2022/07/1517508700605.jpg" alt="user" />
     <div class="user-info">
-    <h5>July Dec</h5>
-    <small>2h ago</small>
+    <h5>Dynamic Insights</h5>
+    <small>1m ago</small>
     </div>
 </div>
 </div>
 </div>
 <div class="card">
 <div class="card-header">
-<img src="https://www.newsbtc.com/wp-content/uploads/2020/06/mesut-kaya-LcCdl__-kO0-unsplash-scaled.jpg" alt="ballons" />
+<img src="https://www.allbusiness.com/asset/2019/05/Business-time-management-..jpg" alt="ballons" />
 </div>
 <div class="card-body">
-<span class="tag tag-purple">Popular</span>
+<span class="tag tag-purple">Stats Breakdown</span>
 <h4>
-    How to Keep Going When You Don’t Know What’s Next
+    Tick Tock - Hourly Statistical Analysis 
 </h4>
 <p>
     The future can be scary, but there are ways to
     deal with that fear.
 </p>
 <div class="user">
-    <img src="https://lh3.googleusercontent.com/ogw/ADGmqu8sn9zF15pW59JIYiLgx3PQ3EyZLFp5Zqao906l=s32-c-mo" alt="user" />
+    <img src="https://thehardgainerbible.com/wp-content/uploads/2022/07/1517508700605.jpg" alt="user" />
     <div class="user-info">
     <h5>Eyup Ucmaz</h5>
     <small>Yesterday</small>
@@ -153,7 +152,7 @@ tenetur error, harum nesciunt ipsum debitis quas aliquid. Reprehenderit,
 quia. Quo neque error repudiandae fuga?
 </p>
 <div class="user">
-    <img src="https://studyinbaltics.ee/wp-content/uploads/2020/03/3799Ffxy.jpg" alt="user" />
+    <img src="https://thehardgainerbible.com/wp-content/uploads/2022/07/1517508700605.jpg" alt="user" />
     <div class="user-info">
     <h5>Carrie Brewer</h5>
     <small>1w ago</small>
@@ -186,7 +185,6 @@ FOUR_CARD_INFO = """
 body {{
 font-size: 15px;
 font-family: 'Poppins', sans-serif;
-background-color: var(--veryLightGray);
 }}
 .attribution {{ 
 font-size: 11px; text-align: center; 
@@ -210,13 +208,14 @@ h1 {{
 .header {{
 text-align: center;
 line-height: 0.8;
-margin-bottom: 50px;
-margin-top: 100px;
+margin-bottom: 20px;
+margin-top: 40px;
 }}
 .header p {{
 margin: 0 auto;
 line-height: 2;
 color: var(--grayishBlue);
+font-size: 1.2rem;
 }}
 .box p {{
 color: var(--grayishBlue);
@@ -273,7 +272,7 @@ font-weight: var(--weight3);
     top: 150px;
 }}
 .box {{
-    width: 20%;
+    width: 25%;
 }}
 .header p {{
     width: 30%;
@@ -296,44 +295,49 @@ rel="stylesheet">
 </head>
 
 <body>
-<div class="header">
-<h1><b>Your Insights, in a glance</b></h1>
-<p style="margin-bottom:15px"><b><span style="color:#555555;">{0}</span></b></p>
 
-<p>Take action without the effort with this easy to digest snapshot which showcases key insights from the data you've selected, don't forget to hit the tabs to discover more</p>
+<div class="header">
+<p><b><span style="color:#555555;">{9}</span></b></p>
 </div>
+
 <div class="row1-container">
+
 <div class="box box-down cyan">
-<h2>{1}<br>{2} on fire!</h2>
-<p>{3}x over the standard deviation in average product sales per hour</p>
-<img src="https://thehardgainerbible.com/wp-content/uploads/2022/07/hot-sale_64.png" alt=""> 
+<h2>{3:.0f} cups sold</h2>
+<p>For a total revenue of ${4:.2f}</p>
+<img src="https://thehardgainerbible.com/wp-content/uploads/2022/07/sales_64.png" alt="">
 </div>
 
 <div class="box red">
-<h2>{6} {8}</h2>
-<p>These hours drastically outperformed the average hourly sales by {7} (volume)... </p>
+<h2>{5} {7}</h2>
+<p>These hours drastically outperformed the average hourly sales (volume) by {6} cups sold respectively... </p>
 <img src="https://thehardgainerbible.com/wp-content/uploads/2022/07/fighting-game_64.png" alt="">
 </div>
 
 <div class="box box-down blue">
-<h2>{9:.0f} sales per hour</h2>
-<p>I'd raise a cup to that</p>
+<h2>{8:.0f} sales per hour</h2>
+<p>Raise a paper cup to strong average hourly sales</p>
 <img src="https://thehardgainerbible.com/wp-content/uploads/2022/07/coffee-cup_64.png" alt="">
 </div>
+
 </div>
+
 <div class="row2-container">
+
 <div class="box orange">
-<h2>{4:.0f} cups sold</h2>
-<p>For a total revenue of ${5:.2f}</p>
-<img src="https://thehardgainerbible.com/wp-content/uploads/2022/07/sales_64.png" alt="">
+<h2>{0}<br>{1} on fire!</h2>
+<p>{2}x over the standard deviation in average product sales per hour</p>
+<img src="https://thehardgainerbible.com/wp-content/uploads/2022/07/hot-sale_64.png" alt=""> 
 </div>
+
 </div>
+
 </body>
 </html>
 """
 #stc.html(TEST_CARD_HTML_2.format(), height=1500)
 
-
+#style="margin-top:40px"
 
 # sumnt we're seeing rapid growth
 # <h2>{0} Is Highly Popular</h2>
