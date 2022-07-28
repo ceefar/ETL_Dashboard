@@ -19,8 +19,4 @@
 
 
 
-
-# ON RETURN - hi btw
-# finish insights img and chart BASIC AF JUST ANYTHING FFS BUT PLS
-# do porfolio mode basics
-# start this page / see other todo ting
+# really wanna do api sumnt new ngl

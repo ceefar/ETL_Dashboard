@@ -23,7 +23,7 @@ import logging
 # for error handling
 import mysql.connector
 # for html componenets 
-from code_components import TEST_CARD_HTML, FOUR_CARD_INFO
+from code_components import THREE_CARD_INFO, FOUR_CARD_INFO
 
 # currently unused imports for debugging
 #from streamlit.scriptrunner import RerunException
@@ -61,14 +61,13 @@ except StreamlitAPIException:
     pass
 
 
-# TODOASAP
-# since queries are being made here, is better to have the connection and query functions here to avoid errors
-# later place all previous db.get_from functions into db integration and for portfolio mode just have code snips or something
-# shit even a module with just strings for it would be fine tbh
-# might leave as is tho tbf am unsure as of rn
-# TODOASAP
-# test try except *just* to restart the connection
-conn = db.init_connection()
+# testing having the connection in main module to see if improves connection bug, tho am not hopeful
+@st.experimental_singleton
+def init_connection():
+    return mysql.connector.connect(**st.secrets["mysql"])
+
+conn = init_connection()
+#conn = db.init_connection()
 
 
 def get_from_db(query):
@@ -1344,7 +1343,7 @@ def run():
         total_revenue_both = total_revenue_1 + total_revenue_2
         highest_sd_hours_both = get_hours_at_highest_standard_deviation(hc_std_dict_both)
         # price of item not relevant for both so discarded, price here is just both prices added together
-        _, revenue_by_hour_dict_both, total_volume_both = create_revenue_by_hour_dict_n_total_revenue(hourcups_dict_both, (price_of_item_1 + price_of_item_2))   
+        revenue_by_hour_dict_both, _, total_volume_both = create_revenue_by_hour_dict_n_total_revenue(hourcups_dict_both, (price_of_item_1 + price_of_item_2))   
 
         # ---- END INSIGHT CALCULATIONS (mostly) ----
 
@@ -1360,7 +1359,7 @@ def run():
             last two parameters are default args since they based on if function runs for item 1 or 2 (price of item), or both items (revenue diff dict)
             """
 
-
+            # NEW STUFF - TEST AREA
             # TODOASAP - MAKE THESE FUNCTIONS DUH!
 
             # a simple boolean flag so we know if we are dealing with solo items or both, relevant for any calculation/print using price_of_item
@@ -1370,12 +1369,16 @@ def run():
             if is_solo_item: 
                 # volume that this hour outperformed the average by
                 best_op_hour_volume = sorted(list(overperformed_by_dict.items()))[0]
+                # grab the actual base value (not just the amount over the average), use the hour in the above hour/volume tuple as the key for the main dict
+                best_op_hour_totalvolume = hourcups_dict[int(best_op_hour_volume[0])]
                 # that volume converted to revenue
                 best_op_hour_revenue = best_op_hour_volume[1] * price_of_item
+                best_op_hour_totalrevenue = best_op_hour_totalvolume * price_of_item
             else:
                 # else set to a null default of same type and we'll display something else relevant for 'both' only if we need to
                 best_op_hour_volume = {0:0}
                 best_op_hour_revenue = 0.0
+                best_op_hour_totalrevenue = 0.0
 
             # note this should be a function but kinda low on time right now so skipping
             # for tab 2 expand this concept to include revenue also, this currently is only used for the snapshot cards
@@ -1465,43 +1468,76 @@ def run():
                 st.write("Take action without the effort with this easy to digest snapshot which showcases key insights from the data you've selected, don't forget to hit the tabs above to discover more")
                 stc.html(FOUR_CARD_INFO.format(display_sd_hours, is_or_are, f"{highest_sd_multiplier:.0f}", total_volume, total_revenue, display_op_hours, display_op_volume, is_or_are_2, average_hourcups, display_date_string), height=1000)
             
+
             # ---- INSIGHT DETAILS - TEXT ----
             with insightTab2:
-                # see old code if you want the store image back, i mean or just do it urself its not hard duhhh
-                st.markdown("##### Insights")
-                st.write("Your personal insights dynamically created from the data you've selected")
-                st.markdown(f"###### Worst Performing Hour : {worst_performer}")
-                st.write(f"At {worst_time}{'pm' if worst_time > 11 else 'am'} consider offers + less staff")   
-                st.markdown(f"###### Best Performing Hour: {best_performer}")  
-                st.write(f"At {best_time}{'pm' if best_time > 11 else 'am'} ensure staff numbers with strong workers at this time to maximise sales")
+
+                # ---- NEW - TEST AREA ----
+                # new and super rough but kinda just skipping through this to do more interesting/harder/new things since this is for learning
+
+                # make this a function
                 st.write("")
-                st.markdown(f"Average Sales Per Hour: {average_hourcups:.0f} cups sold")
-                st.write(f"Hours Above Average Sales: {hours_above_avg_sales}")
-                st.write("Actionable Insight - Get more staff for these hours")
-                st.write(f"Hours Under Average Sales: {', '.join(list(map(lambda x : f'{x}pm' if x > 11 else f'{x}am' , list(below_avg_hc.keys()))))}")
-                st.write("Actionable Insight - Consider running product offers or discounts during these hours")
-                
-                # need to implement below instead of this bland af text
-                # new html/css component, cards again, 3x horizontal, better suited for descriptive text, more cards can be added if needed
-                stc.html(TEST_CARD_HTML.format(), height=1200)
+                by_hour_string = []
+                for (revkey, revvalue), (sdkey, sdvalue) in zip(revenue_by_hour_dict.items(), hc_std_dict.items()):
+                    by_hour_string.append(f"{give_hour_am_or_pm(revkey)}" + f" : ${revvalue:.2f} at {sdvalue:.0f}x SD volume")
+                by_hour_string = "<br>".join(by_hour_string)
+
+                # yup I got bored of this page, last thing im doing here then moving on to move complex stuff
+                worst_string_1 = f"Worst Performing Hour:<br> - {worst_performer}<br><br>"
+                worst_string_2 = f"At {worst_time}{'pm' if worst_time > 11 else 'am'} consider offers + less staff<br><br>"
+                hours_under_avg_sales = ', '.join(list(map(lambda x : f'{x}pm' if x > 11 else f'{x}am' , list(below_avg_hc.keys()))))
+                worst_string_3 = "Hours Under Average Sales: " + hours_under_avg_sales + "<br>"
+                worst_string_4 = "Actionable Insight - Consider running product offers or discounts during these hours"
+
+                # make this a function
+                if len(highest_sd_hours) > 1:
+                    display_sd_string = "performers here were"
+                    # this is actually wrong rn but its too much of a time sink for me to care anymore
+                    besthourrev = (highest_sd_hours)[0]
+                    display_sd_string_2 = f"with the best [{give_hour_am_or_pm(besthourrev)}] coming in at"
+                else:
+                    display_sd_string = "perfomer here was"            
+                    display_sd_string_2 = ""
+                # END NEW TEST AREA
+
+                try:
+                    # new html/css component, cards again, 3x horizontal, better suited for descriptive text, more cards can be added if needed
+                    stc.html(THREE_CARD_INFO.format(average_hourcups, display_op_hours, display_sd_hours, best_op_hour_volume[1], best_op_hour_revenue,
+                                                    best_op_hour_totalrevenue, highest_sd_multiplier, display_sd_string, display_sd_string_2, by_hour_string,
+                                                    worst_string_1, worst_string_2, worst_string_3, worst_string_4), height=1200)
+                except TypeError:
+                    # temporarily catch the error that is due to the difference in data between solo items and both items datasets
+                    st.write("Both Items Comparison Analysis - Coming Soon")
+                except KeyError:
+                    # temporarily catch the error that is due to the difference in data between solo items and both items datasets
+                    st.write("Both Items Comparison Analysis - Coming Soon")
+
 
             # ---- MORE INSIGHTS - CHART/S ----
             with insightTab3:
                 # i got a bit too wrapped up in the whole pie thing, mb
-                my_hungry_ass, cooling_window = st.columns(2)
-
-                with cooling_window:
+                my_hungry_ass, cooling_window, _ = st.columns([4,3,1])
+                
+                with my_hungry_ass:
                     # prepare the dataframe from the amount of cups (item 1) sold per hour
+                    st.write("##")
+                    st.write("##")
                     pie_sawce = pd.DataFrame({"values": hourcups_dict.values(), "hours":hourcups_dict.keys()}) # mmmmm pie sauce
                     # prepare the pie (gas mark 5, 25 minutes)
                     pie_base = alt.Chart(pie_sawce).encode(
                         theta=alt.Theta("values:Q", stack=True),
                         radius=alt.Radius("values", scale=alt.Scale(type="sqrt", zero=True, rangeMin=20)),
-                        color="hours:N")
+                        color=alt.Color('hours:N', legend=alt.Legend(title = "Hour", orient="left")))  # scale=alt.Scale(scheme='category10'), 
                     # render the pie... i mean kettle... wait
                     pie_crust = pie_base.mark_arc(innerRadius=20, stroke="#fff") # the actual chart
                     pie_decotation = pie_base.mark_text(radiusOffset=10).encode(text="values:Q") # the text... i get bored sometimes
                     st.altair_chart(pie_crust + pie_decotation, use_container_width=True)   
+
+                with cooling_window:
+                    st.write("##")
+                    st.write("##")
+                    st.markdown("##### Hourly Breakdown")
+                    st.write("Let's take a deep dive into the hourly data to see what insights lie beneath the surface lorem...")
 
 
 
@@ -1515,23 +1551,11 @@ def run():
 
 
 
-
         # ---- CREATE & DISPLAY INSIGHTS PROGRAMATICALLY ----
     
         # initialise tabs, named dynamically based on (main) item name
-        insightBothItemsTab, insightItem1Tab, insightItem2Tab = st.tabs(["Insights - Both Items", f"1.{item_selector_1}", f"2.{item_selector_2}"])
+        insightItem1Tab, insightItem2Tab, insightBothItemsTab = st.tabs([f"1.{item_selector_1}", f"2.{item_selector_2}", "Insights - Both Items"])
 
-        # for each tab, run function which creates nested tabs and dynamically fills them with the relevant data (item 1, item 2, both items)
-        with insightBothItemsTab:
-            # ---- BOTH ITEMS ----
-            st.markdown("*Note - Currently Insights are only for the full date range, not week by week*")
-            # this is 1 minus 2 so is really unique and not valid for 1 or 2 hence why it is here (legit placed here so i dont forget it too)
-            revenue_diff_by_hour_dict = create_hc_1_vs_2_difference_in_revenue_by_hour_dict(revenue_by_hour_dict_1,revenue_by_hour_dict_2)
-            print("\nrevenue_diff_by_hour_dict", revenue_diff_by_hour_dict)
-            fill_sublevel_tabs_with_insights(worst_performer_both, worst_time_both, best_performer_both, best_time_both,\
-                                            average_hourcups_both, above_avg_hc_both, below_avg_hc_both, hourcups_dict_both,\
-                                            overperformed_by_dict_both, hc_std_dict_both, hc_std_both, revenue_by_hour_dict_both,\
-                                            total_revenue_both, total_volume_both, highest_sd_hours_both, rev_diff_dict=revenue_diff_by_hour_dict)
 
         with insightItem1Tab:
             # ---- ITEMS 1 ----
@@ -1548,6 +1572,18 @@ def run():
                                             average_hourcups_2, above_avg_hc_2, below_avg_hc_2, hourcups_dict_2,\
                                             overperformed_by_dict_2, hc_std_dict_2, hc_std_2, revenue_by_hour_dict_2,\
                                             total_revenue_2, total_volume_2, highest_sd_hours_2, price_of_item=price_of_item_2)
+
+        # for each tab, run function which creates nested tabs and dynamically fills them with the relevant data (item 1, item 2, both items)
+        with insightBothItemsTab:
+            # ---- BOTH ITEMS ----
+            st.markdown("*Note - Currently Insights are only for the full date range, not week by week*")
+            # this is 1 minus 2 so is really unique and not valid for 1 or 2 hence why it is here (legit placed here so i dont forget it too)
+            revenue_diff_by_hour_dict = create_hc_1_vs_2_difference_in_revenue_by_hour_dict(revenue_by_hour_dict_1,revenue_by_hour_dict_2)
+            print("\nrevenue_diff_by_hour_dict", revenue_diff_by_hour_dict)
+            fill_sublevel_tabs_with_insights(worst_performer_both, worst_time_both, best_performer_both, best_time_both,\
+                                            average_hourcups_both, above_avg_hc_both, below_avg_hc_both, hourcups_dict_both,\
+                                            overperformed_by_dict_both, hc_std_dict_both, hc_std_both, revenue_by_hour_dict_both,\
+                                            total_revenue_both, total_volume_both, highest_sd_hours_both, rev_diff_dict=revenue_diff_by_hour_dict)
         
 
         # general debugging
@@ -1569,14 +1605,14 @@ if __name__ == "__main__":
         # log error messages
         logger.error("ERROR! - (╯°□°）╯︵ ┻━┻")
         logger.info("What The Connection Doin?")
+        logger.error("Connection bugged again")
         logger.info(operr)
         # wipe the cache thoroughly
         st.experimental_memo.clear()
         st.experimental_singleton.clear()
         # rerun the app
         st.experimental_rerun()
-
-        
+        # problem solved
     except DuplicateWidgetID as dupwid:
         logger.error("ERROR! - (╯°□°）╯︵ ┻━┻")
         logger.error("DuplicateWidgetID")
