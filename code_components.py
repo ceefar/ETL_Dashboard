@@ -5,7 +5,7 @@ import streamlit as st
 
 # ---- streamlit html/css componenets ----
 
-TEST_CARD_HTML = """
+THREE_CARD_INFO = """
 <style>
 @import url("https://fonts.googleapis.com/css2?family=Roboto&display=swap");
 * {{
@@ -16,7 +16,6 @@ display: flex;
 justify-content: center;
 align-items: center;
 margin: 0;
-background-color: #f7f8fc;
 font-family: "Roboto", sans-serif;
 color: #10182f;
 }}
@@ -91,28 +90,24 @@ color: #545d7a;
 <div class="container">
 <div class="card">
 <div class="card-header">
-<img src="https://nmgprod.s3.amazonaws.com/media/files/86/53/8653b96f15861cf643cc136bf94db701/cover_image_1587766077.jpg.760x400_q85_crop_upscale.jpg" alt="rover" />
+<img src="https://nmgprod.s3.amazonaws.com/media/files/86/53/8653b96f15861cf643cc136bf94db701/cover_image_1587766077.jpg.760x400_q85_crop_upscale.jpg" alt="money" />
 </div>
 <div class="card-body">
 <span class="tag tag-teal">Popularity Insights</span>
 <h4>
-    What's Hot & What's Not - Top Sellers & Averages
+    What's Hot - Top Sellers & Averages
 </h4>
 <p>
-    Average sales is an important metric as it gives us insight on a very important metric, and that's popularity. So average sales were X, but these hours performed over that by Y volume/sales for Z revenue. Here's some more stats A.
+    By using average sales @ {0:.0f} cups as a baseline, we can see that but the hours {1} performed over the average.
+    <br><br>But the true top {7} {2}, with {3:.0f} additional sales/volume over the average {8} for a total of ${4:.2f} over the average, or ${5:.2f} in total revenue over the period.
+    <br><br>That performance is {6:.0f} times over the standard deviation in terms of volume and should be monitored for future opportunities. 
 </p>
-<div class="user">
-    <img src="https://thehardgainerbible.com/wp-content/uploads/2022/07/1517508700605.jpg" alt="user" />
-    <div class="user-info">
-    <h5>Dynamic Insights</h5>
-    <small>1m ago</small>
-    </div>
-</div>
+
 </div>
 </div>
 <div class="card">
 <div class="card-header">
-<img src="https://www.allbusiness.com/asset/2019/05/Business-time-management-..jpg" alt="ballons" />
+<img src="https://www.allbusiness.com/asset/2019/05/Business-time-management-..jpg" alt="time" />
 </div>
 <div class="card-body">
 <span class="tag tag-purple">Stats Breakdown</span>
@@ -120,44 +115,28 @@ color: #545d7a;
     Tick Tock - Hourly Statistical Analysis 
 </h4>
 <p>
-    The future can be scary, but there are ways to
-    deal with that fear.
+    Here's some hourly stats...<br><br>
+    {9}
+    <br><br>
+    <i>SD = Standard Deviation</i>
 </p>
-<div class="user">
-    <img src="https://thehardgainerbible.com/wp-content/uploads/2022/07/1517508700605.jpg" alt="user" />
-    <div class="user-info">
-    <h5>Eyup Ucmaz</h5>
-    <small>Yesterday</small>
-    </div>
-</div>
+
 </div>
 </div>
 <div class="card">
 <div class="card-header">
-<img src="https://images6.alphacoders.com/312/thumb-1920-312773.jpg" alt="city" />
+<img src="https://cff2.earth.com/uploads/2017/10/20195551/Climate-change-could-devastate-the-coffee-industry-850x500.jpg" alt="coffee" />
 </div>
 <div class="card-body">
-<span class="tag tag-pink">Design</span>
+<span class="tag tag-teal">Popularity Insights</span>
 <h4>
-    10 Rules of Dashboard Design
+    Cooling Off - Areas To Improve
 </h4>
 <p>
-    Lorem ipsum dolor sit amet consectetur adipisicing elit. Maxime mollitia,
-molestiae quas vel sint commodi repudiandae consequuntur voluptatum laborum
-numquam blanditiis harum quisquam eius sed odit fugiat iusto fuga praesentium
-optio, eaque rerum! Provident similique accusantium nemo autem. Veritatis
-obcaecati tenetur iure eius earum ut molestias architecto voluptate aliquam
-nihil, eveniet aliquid culpa officia aut! Impedit sit sunt quaerat, odit,
-tenetur error, harum nesciunt ipsum debitis quas aliquid. Reprehenderit,
-quia. Quo neque error repudiandae fuga?
+    Top performers aren't the only thing that matters. Here are some areas could use improvement that you should focus to maximise profits.<br><br>
+    {10} {11} {12} {13}
 </p>
-<div class="user">
-    <img src="https://thehardgainerbible.com/wp-content/uploads/2022/07/1517508700605.jpg" alt="user" />
-    <div class="user-info">
-    <h5>Carrie Brewer</h5>
-    <small>1w ago</small>
-    </div>
-</div>
+
 </div>
 </div>
 

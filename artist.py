@@ -1,10 +1,9 @@
 # ---- IMPORTS ----
 
 # for image manipulation
-from genericpath import exists
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
+# for creating directory for storing images
 import os
-
 
 
 # ---- DRAW CALENDAR ----
@@ -13,12 +12,11 @@ import os
 def highlight_calendar(weeknumb:int, actualweeknumb:int) -> str:
     """ write me pls ceef """
 
-    # make the directory as web app errors 
-    if not os.path.exists("..imgs/arty"):
-        print("couldn't find it")
-    else:
-        print("found it")
-    os.mkdir("imgs/arty")
+    # make the directory if it doesn't exist as web app errors without it explicitly created 
+    try:
+        os.mkdir("imgs/arty")
+    except FileExistsError:
+        pass
 
     # set base image to be june or july based on the week number
     if 22 <= actualweeknumb <= 26:
