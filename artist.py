@@ -1,7 +1,9 @@
 # ---- IMPORTS ----
 
 # for image manipulation
+from genericpath import exists
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
+import os
 
 
 
@@ -10,6 +12,13 @@ from PIL import Image, ImageDraw, ImageFont, ImageFilter
 # def highlight_calendar(weeknumb:int, actualweeknumb:int, weekarray:list) -> str:
 def highlight_calendar(weeknumb:int, actualweeknumb:int) -> str:
     """ write me pls ceef """
+
+    # make the directory as web app errors 
+    if not os.path.exists("..imgs/arty"):
+        print("couldn't find it")
+    else:
+        print("found it")
+    os.mkdir("imgs/arty")
 
     # set base image to be june or july based on the week number
     if 22 <= actualweeknumb <= 26:
