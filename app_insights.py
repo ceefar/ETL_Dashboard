@@ -106,36 +106,50 @@ def base_queries() -> dict: # could place this in db integration in future btw
     return(base_dictionary)
 
 
-def create_stores_query(user_stores_list:list, need_where:bool = True, for_data:bool = False, is_join:bool = False) -> str:
-    """ for creating the dynamic query for store selection, given list should not be None """
+def create_stores_query(user_stores_list:list, dev_mode:bool = False) -> str:
+    """ 
+    //desc : for creating the dynamic query for store selection, given list should not be None 
+    //param : user_stores_list = list of the stores the user has selected from the multi-select
+                dev_mode = turns on/off the echo which prints the code that has run as live code snippets 
+    //returns : stores part of the final query as a string
+    """
+    if dev_mode:
+        with st.expander("Porfolio Mode [Function] : create_stores_query()"):
+            with st.echo():
+                st.markdown("###### Add Stores To See The Magic")
 
-    # for data flag sets the store name column var to either store_name or store
-    # for join flag adds d. to the store variable as it is being used in a join
-    if for_data:
-        if is_join:
-            store_var = "d.store"
-        else:
-            store_var = "store"
+                # stored as vars incase revert to older version which had more dynamic options
+                store_var = "store_name"
+                where_part = "WHERE " 
+
+                # if only one store then the query is simply the store itself
+                if len(user_stores_list) == 1:
+                    return(f"{where_part}{store_var} = '{user_stores_list[0]}'")
+                # if all options removed from multi-select by user
+                elif len(user_stores_list) == 0 or user_stores_list[0] == "":
+                    return(f"{where_part}{store_var} = 'Chesterfield'")
+                # else if the length is larger than 1 then we must join the stores dynamically for the resulting query
+                else:
+                    # see this change dynamically by adding 2 and then 3+ stores
+                    final_query = f" OR {store_var}=".join(list(map(lambda x: f"'{x}'",user_stores_list)))
+                    # show the resulting dynamic string
+                    st.code(final_query, "sql")
+                    final_query = f"{where_part} ({store_var}=" + final_query + ")"
+                    # show the resulting dynamic string
+                    st.code(final_query, "sql")
+                    # return the result
+                    return(final_query)
     else:
         store_var = "store_name"
-
-    # parameter flag for if the WHERE part of the statement is needed or not
-    if need_where:
-        where_part = "WHERE "
-    else:
-        where_part = " "
-
-    # if only one store then the query is simply the store itself
-    if len(user_stores_list) == 1:
-        return(f"{where_part}{store_var} = '{user_stores_list[0]}'")
-    # if 
-    elif len(user_stores_list) == 0 or user_stores_list[0] == "":
-        return(f"{where_part}{store_var} = 'Chesterfield'")
-    # else if the length is larger than 1 then we must join the stores dynamically for the resulting query
-    else:
-        final_query = f" OR {store_var}=".join(list(map(lambda x: f"'{x}'",user_stores_list)))
-        final_query = f"{where_part} ({store_var}=" + final_query + ")"
-        return(final_query)
+        where_part = "WHERE " 
+        if len(user_stores_list) == 1:
+            return(f"{where_part}{store_var} = '{user_stores_list[0]}'")
+        elif len(user_stores_list) == 0 or user_stores_list[0] == "":
+            return(f"{where_part}{store_var} = 'Chesterfield'")
+        else:
+            final_query = f" OR {store_var}=".join(list(map(lambda x: f"'{x}'",user_stores_list)))
+            final_query = f"{where_part} ({store_var}=" + final_query + ")"
+            return(final_query)
 
 
 @st.cache
@@ -188,47 +202,90 @@ def get_main_items_from_stores(user_store:str) -> list:
 # END OLD 
 
 
-def create_flavour_query(flavour_x_is_null:bool, multi_flav_selector_x:list, final_item_flavours_list_x:list) -> str:
+def create_flavour_query(flavour_x_is_null:bool, multi_flav_selector_x:list, final_item_flavours_list_x:list, dev_mode:bool = False) -> str:
     """
     dynamically create the flavour part of the query based on the users input,
     including cases where there is no flavour for the item, and also if all options were removed by the user (just to be awkward)
     """
-    # first split flavour selector dynamically if multi select, requires bracket notation for AND / OR statement
-    # only required for flavour, as size can only be regular or large
 
-    # if only 1 flavour then 2 cases to deal with
-    if len(multi_flav_selector_x) == 1:
-        # check if this item has flavours by checking what was returned by the database for this item
-        if multi_flav_selector_x[0] is None:
-            # if there is no flavour for this then set the query to validate on NULL values (no = operator, no '')
-            final_flav_select = f"i.item_flavour = ''"
-            # also set null flavour flag to True so that final sql can be altered to output valid string (i.item_name, i.item_size, i.item_flavour) 
-            flavour_x_is_null = True
-        else:
-            # else just 1 valid flavour was selected so create standard query
-            final_flav_select = f"i.item_flavour='{multi_flav_selector_x[0]}'"
+    if dev_mode:
+        with st.expander("Portfolio Mode [Function] : create_flavour_query()"):   
+            with st.echo(): 
+                # first split flavour selector dynamically if multi select, requires bracket notation for AND / OR statement
+                # only required for flavour, as size can only be regular or large
 
-    # else if more than 1 flavour was selected then we must dynamically join them together so the query include OR statements
-    elif len(multi_flav_selector_x) > 1:
-        final_flav_select = " OR i.item_flavour=".join(list(map(lambda x: f"'{x}'", multi_flav_selector_x)))
-        final_flav_select = "(i.item_flavour=" + final_flav_select + ")"
+                # if only 1 flavour then 2 cases to deal with
+                if len(multi_flav_selector_x) == 1:
+                    # check if this item has flavours by checking what was returned by the database for this item
+                    if multi_flav_selector_x[0] is None:
+                        # if there is no flavour for this then set the query to validate on NULL values (no = operator, no '')
+                        final_flav_select = f"i.item_flavour = ''"
+                        # also set null flavour flag to True so that final sql can be altered to output valid string (i.item_name, i.item_size, i.item_flavour) 
+                        flavour_x_is_null = True
+                    else:
+                        # else just 1 valid flavour was selected so create standard query
+                        final_flav_select = f"i.item_flavour='{multi_flav_selector_x[0]}'"
 
-    # else if no flavour was selected (any valid flavour was removed from the multiselect box by the user) then 2 cases to deal with  
-    elif len(multi_flav_selector_x) == 0:
-        # first check the available flavours that were returned by the database for this item, if true user has removed the 'None' flavour option from multiselect
-        if multi_flav_selector_x is None:
-            # if there is no flavour then set to validate on NULL
-            final_flav_select = f"i.item_flavour = ''"
-        else:      
-            # else (if the first flavour select option isn't None) then it means the user removed all from valid flavours from multiselect   
-            # ternary statement prints None instead of a blank space if there is used removed all selections for flavours else prints the default flavour that's being used       
-            final_flav_select = f"i.item_flavour='{final_item_flavours_list_x[0] if final_item_flavours_list_x[0] != '' else 'None'}'"
-            # so add the 'default', aka first item in the flavours list, to the query and inform the user of what has happened          
+                # else if more than 1 flavour was selected then we must dynamically join them together so the query include OR statements
+                elif len(multi_flav_selector_x) > 1:
+                    final_flav_select = " OR i.item_flavour=".join(list(map(lambda x: f"'{x}'", multi_flav_selector_x)))
+                    final_flav_select = "(i.item_flavour=" + final_flav_select + ")"
 
-    # since None can be in the box we just remove it if it gets added to the query and replace with a none string
-    final_flav_select = final_flav_select.replace("None","")
-    # return the result
-    return(final_flav_select, flavour_x_is_null)
+                # else if no flavour was selected (any valid flavour was removed from the multiselect box by the user) then 2 cases to deal with  
+                elif len(multi_flav_selector_x) == 0:
+                    # first check the available flavours that were returned by the database for this item, if true user has removed the 'None' flavour option from multiselect
+                    if multi_flav_selector_x is None:
+                        # if there is no flavour then set to validate on NULL
+                        final_flav_select = f"i.item_flavour = ''"
+                    else:      
+                        # else (if the first flavour select option isn't None) then it means the user removed all from valid flavours from multiselect   
+                        # ternary statement prints None instead of a blank space if there is used removed all selections for flavours else prints the default flavour that's being used       
+                        final_flav_select = f"i.item_flavour='{final_item_flavours_list_x[0] if final_item_flavours_list_x[0] != '' else 'None'}'"
+                        # so add the 'default', aka first item in the flavours list, to the query and inform the user of what has happened          
+
+                # since None can be in the box we just remove it if it gets added to the query and replace with a none string
+                final_flav_select = final_flav_select.replace("None","")
+                # return the result
+                return(final_flav_select, flavour_x_is_null)
+    
+    else:
+
+        # first split flavour selector dynamically if multi select, requires bracket notation for AND / OR statement
+        # only required for flavour, as size can only be regular or large
+
+        # if only 1 flavour then 2 cases to deal with
+        if len(multi_flav_selector_x) == 1:
+            # check if this item has flavours by checking what was returned by the database for this item
+            if multi_flav_selector_x[0] is None:
+                # if there is no flavour for this then set the query to validate on NULL values (no = operator, no '')
+                final_flav_select = f"i.item_flavour = ''"
+                # also set null flavour flag to True so that final sql can be altered to output valid string (i.item_name, i.item_size, i.item_flavour) 
+                flavour_x_is_null = True
+            else:
+                # else just 1 valid flavour was selected so create standard query
+                final_flav_select = f"i.item_flavour='{multi_flav_selector_x[0]}'"
+
+        # else if more than 1 flavour was selected then we must dynamically join them together so the query include OR statements
+        elif len(multi_flav_selector_x) > 1:
+            final_flav_select = " OR i.item_flavour=".join(list(map(lambda x: f"'{x}'", multi_flav_selector_x)))
+            final_flav_select = "(i.item_flavour=" + final_flav_select + ")"
+
+        # else if no flavour was selected (any valid flavour was removed from the multiselect box by the user) then 2 cases to deal with  
+        elif len(multi_flav_selector_x) == 0:
+            # first check the available flavours that were returned by the database for this item, if true user has removed the 'None' flavour option from multiselect
+            if multi_flav_selector_x is None:
+                # if there is no flavour then set to validate on NULL
+                final_flav_select = f"i.item_flavour = ''"
+            else:      
+                # else (if the first flavour select option isn't None) then it means the user removed all from valid flavours from multiselect   
+                # ternary statement prints None instead of a blank space if there is used removed all selections for flavours else prints the default flavour that's being used       
+                final_flav_select = f"i.item_flavour='{final_item_flavours_list_x[0] if final_item_flavours_list_x[0] != '' else 'None'}'"
+                # so add the 'default', aka first item in the flavours list, to the query and inform the user of what has happened          
+
+        # since None can be in the box we just remove it if it gets added to the query and replace with a none string
+        final_flav_select = final_flav_select.replace("None","")
+        # return the result
+        return(final_flav_select, flavour_x_is_null)
 
 
 def create_size_query(multi_size_selector_x:list) -> str:
@@ -274,7 +331,7 @@ def get_hour_cups_data(flavour_x_concat, selected_stores_x, select_date, item_se
     logger.info("Final hour x cups Altair chart query (get_hour_cups_data) - {0}".format(cups_by_hour_query)) 
     hour_cups_data = get_from_db(cups_by_hour_query)  
     # return the resulting list of tuples [(count, hour, flavour x item x size x store string, date as datetime.date)]
-    return(hour_cups_data) 
+    return(hour_cups_data, cups_by_hour_query) 
 
 
 def decide_to_include_flavour(flavour_x_is_null:bool) -> str:
@@ -310,6 +367,78 @@ def give_hour_am_or_pm(an_hour):
     # return the result
     return(an_hour)
 
+
+# TODOASAP - type hints?
+def convert_raw_data_to_weeks(hour_cups_data_x_adv:list, just_cupcount_list_x_w0, just_cupcount_list_x_w1, just_cupcount_list_x_w2, just_cupcount_list_x_w3, just_cupcount_list_x_w4, just_cupcount_list_x_w5,
+                                just_hour_list_x_w0, just_hour_list_x_w1, just_hour_list_x_w2, just_hour_list_x_w3, just_hour_list_x_w4, just_hour_list_x_w5,
+                                just_names_list_x_w0, just_names_list_x_w1, just_names_list_x_w2, just_names_list_x_w3, just_names_list_x_w4, just_names_list_x_w5,
+                                first_date_altair, end_of_first_week_date_altair, weeks_between_dates, last_date_altair) -> tuple[list]:
+    """ write me - complex but not complicated, just multi-step af """
+
+    # vars for start and end of week as datetime.date objects
+    week_start_var, week_end_var = first_date_altair, end_of_first_week_date_altair
+
+    # create loop to run for the needed weeks (sets of 7 days), starting from the first valid date, up to max of week 6, won't run for single date as weeks_between == 0
+    for weeknum in range(1, weeks_between_dates + 1):
+
+        # dict that sorts which list each loops results will be appended to
+        weeks_dict = {1:(just_cupcount_list_x_w0, just_hour_list_x_w0, just_names_list_x_w0),
+                        2:(just_cupcount_list_x_w1, just_hour_list_x_w1, just_names_list_x_w1),
+                        3:(just_cupcount_list_x_w2, just_hour_list_x_w2, just_names_list_x_w2),
+                        4:(just_cupcount_list_x_w3, just_hour_list_x_w3, just_names_list_x_w3),
+                        5:(just_cupcount_list_x_w4, just_hour_list_x_w4, just_names_list_x_w4),
+                        6:(just_cupcount_list_x_w5, just_hour_list_x_w5, just_names_list_x_w5),
+                        }
+
+        # set vars for the list that will be appended to based on the weeknum
+        just_cupcount_list_1_week, just_hour_list_1_week, just_names_list_1_week = weeks_dict[weeknum][0], weeks_dict[weeknum][1], weeks_dict[weeknum][2]
+
+        # the missing piece of data that would be cut off during the loop and a bool flag for knowing when to add it
+        missingno_data = ()
+        gone_missin = False
+
+        # grab the cups data and add it to the relevant list
+        for cups_data in hour_cups_data_x_adv[:]:
+
+            # boolean flag to tag on the single piece of data that would be missing in each loop due to end of loop validation
+            if gone_missin:
+                just_cupcount_list_1_week.append(missingno_data[0])
+                just_hour_list_1_week.append(missingno_data[1])
+                just_names_list_1_week.append(missingno_data[2])
+                # reset the flag
+                gone_missin = False
+
+            # if statement to only grab data for the given week
+            if cups_data[3] >= week_start_var and cups_data[3] <= week_end_var:
+                just_cupcount_list_1_week.append(cups_data[0])
+                just_hour_list_1_week.append(cups_data[1])
+                just_names_list_1_week.append(cups_data[2])
+
+            # save just the date as a temporary variable so we can pop off the now completed item from this list
+            just_date = cups_data[3]
+
+            # remove the already appended elements to save time for future loops
+            hour_cups_data_x_adv.remove(cups_data)
+
+            # if reached a date thats greater than increment week var - note that it (the current cups_data) won't have been added
+            if just_date > week_end_var:
+                # first save this piece of data outside the loop to slot in it during the next loop (as it is not valid for 'this' week but the next)
+                missingno_data = (cups_data[0], cups_data[1], cups_data[2])
+                gone_missin = True
+                # incremenet the vars to continue looping through the next set of 7 days
+                weeknum += 1
+                week_start_var = week_start_var + datetime.timedelta(days=8)
+                week_end_var = week_start_var + datetime.timedelta(days=7)
+                # though we're calculating and using the weeks in this loop, still dont allow the final date to be greater than the users selection
+                if week_end_var > last_date_altair:
+                    week_end_var = last_date_altair
+                break
+    
+    # return a tuple of the results to unpack on receipt
+    return((just_cupcount_list_x_w0, just_cupcount_list_x_w1, just_cupcount_list_x_w2, just_cupcount_list_x_w3, just_cupcount_list_x_w4, just_cupcount_list_x_w5,
+            just_hour_list_x_w0, just_hour_list_x_w1, just_hour_list_x_w2, just_hour_list_x_w3, just_hour_list_x_w4, just_hour_list_x_w5,
+            just_names_list_x_w0, just_names_list_x_w1, just_names_list_x_w2, just_names_list_x_w3, just_names_list_x_w4, just_names_list_x_w5))
+        
 
 # ---- INSIGHTS FUNCTIONS ----
 # more functions, but just from the insights section, broken up sections for a bit more visual clarity
@@ -665,17 +794,12 @@ def run():
     if "active_date_2" not in st.session_state:
         st.session_state["active_date_2"] = datetime.date(2000, 1, 1) # 2 = end date (if valid, hence different default)
 
-    # TODOASAP - delete below? rn removed to test and see if it even did anything
-    # empty var for selected stores last active tab functionality
-    # selected_date = ""
-
 
     # ---- SIDEBAR ----
 
     # portfolio/developer mode toggle
     with st.sidebar:
 
-        # TODOASAP - dev mode code snippets in hmtl components
         dev_mode = st.checkbox(label="Portfolio Mode ", key="devmode-insights")
         if dev_mode:
             DEV_MODE_INFO = """
@@ -761,10 +885,13 @@ def run():
 
         # ---- STORE SELECT ----
         selected_stores_1 = st.multiselect("Choose The Store/s", options=base_stores_list, default=["Chesterfield"])
+        # run the query
+        stores_query = create_stores_query(selected_stores_1, dev_mode)
 
     userSelectCol2, _, calendarCol = st.columns([5,1,5]) 
     with userSelectCol2:
         
+
         # ---- DATE SELECT ----
         #dateTab2, dateTab1, dateTab3, dateTab4, dateTab5, dateTabs6 = st.tabs(["Between 2 Dates", "Single Day", "Single Week", "Mulitple Weeks", "Full Month", "All Time"]) 
         dateTab2, dateTab1, dateTab3, dateTab4 = st.tabs(["Between 2 Dates", "Single Day", "Single Week", "Mulitple Weeks"]) 
@@ -791,9 +918,6 @@ def run():
 
         # ---- SINGLE WEEK ----
         with dateTab3:
-            # TODO 
-            # put query in db_interaction and rest in own function
-            stores_query = create_stores_query(selected_stores_1)
             stores_avail_weeks = sorted(get_from_db(f"SELECT DISTINCT WEEKOFYEAR(current_day) FROM BizInsights {stores_query}"))
             first_day_of_week_list = [] # for zipping with stores_available_weeks (must ensure order is correct)
             for weeknum in stores_avail_weeks:
@@ -880,9 +1004,7 @@ def run():
 
     # ---- VISUAL CLARITY CALENDAR PRINT ----
 
-    # TODOASAP - do properly, do as function, do error handling, cache it(properly), dynamic functionality for tab 1 and 2!
-    # 100% as a function and cached otherwise is creating a dynamic image everytime when it reeeally isn't needed
-    # but save the functionality (dont convert to just X_select = print X_image) as can do dynamically for between 2 dates and single day too
+    # TODOASAP - make me dynamic for other img stuff
     if st.session_state["last_active_date_tab"] == 3:
         june_start_weeknumb = 22
         weeknumberselect = int(selected_date_3[5:8])
@@ -890,8 +1012,6 @@ def run():
         # calendar_highlight = arty.highlight_calendar(highlight_week, weeknumberselect, week_array)
         calendar_highlight = arty.highlight_calendar(highlight_week, weeknumberselect)
         calendarCol.image(calendar_highlight) 
-        
-   
 
 
     # ---- DIVIDER ----
@@ -905,25 +1025,24 @@ def run():
     with st.container():
 
         # title and column setup
-        st.write(f"### :bulb: Insight - Compare Two Items") 
+        st.write(f"### :bulb: Dynamic Insights - Compare & Contrast") 
 
         # select any item from the store for comparison
         item1Col, itemInfoCol, item2Col = st.columns([2,1,2])
 
-
         # ---- USER SELECTS ----
 
         with item1Col:
+            # user select store and then item 1
             store_selector_1 = st.selectbox(label=f"Which Store Do You Want To Choose An Item From?", key="store_sel_1", options=selected_stores_1, index=0, help="For more stores update the above multiselect")
-            #final_main_item_list = get_main_items_from_stores(store_selector_1)
             final_main_item_list = get_main_items_from_stores_updated(store_selector_1)
-            
             item_selector_1 = st.selectbox(label=f"Choose An Item From Store {store_selector_1}", key="item_selector_1", options=final_main_item_list, index=0) 
             
         with item2Col:
+            # show the second store in the list if there is more than one store
             store_select_2_index = 1 if len(selected_stores_1) > 1 else 0
+            # user select store and then item 2
             store_selector_2 = st.selectbox(label=f"Which Store Do You Want To Choose An Item From?", key="store_sel_2", options=selected_stores_1, index=store_select_2_index, help="For more stores update the above multiselect")
-            #final_main_item_list = get_main_items_from_stores(store_selector_2)
             final_main_item_list = get_main_items_from_stores_updated(store_selector_2)
             item_selector_2 = st.selectbox(label=f"Choose An Item From Store {store_selector_2}", key="item_selector_2", options=final_main_item_list, index=1)
             
@@ -969,7 +1088,7 @@ def run():
         flavour_1_is_null = False
         flavour_2_is_null = False
         # call functions that dynamically creates the complex flavour part of the query, plus the simpler size query
-        final_flav_select_1, flavour_1_is_null = create_flavour_query(flavour_1_is_null, multi_flav_selector_1, final_item_flavours_list)
+        final_flav_select_1, flavour_1_is_null = create_flavour_query(flavour_1_is_null, multi_flav_selector_1, final_item_flavours_list, dev_mode)
         final_size_select_1 = create_size_query(multi_size_selector_1)
         final_flav_select_2, flavour_2_is_null = create_flavour_query(flavour_2_is_null, multi_flav_selector_2, final_item_flavours_list_2)
         final_size_select_2 = create_size_query(multi_size_selector_2)
@@ -979,7 +1098,6 @@ def run():
 
         # due to the way streamlit works with rerunning the entire app on update, occassional bugs slip in
         # this covers the last active tab being reset to a less stable state, and forces it to the more stable 'between two dates' option
-        print(st.session_state["last_active_date_tab"]) # debug print that should be removed
         if st.session_state["last_active_date_tab"] == 4: # think i might be hopping around between int and str for this var btw
             last_active_tab(2)
             selected_date = set_selected_date_from_last_active_tab(use_vs_selected_date_dict)
@@ -998,11 +1116,23 @@ def run():
         # log last active tab before running function
         logger.info("last active date tab = {0}".format(active_tab_key))
         # get data for left side
-        hour_cups_data_1_adv = get_hour_cups_data(flavour_1_concat, selected_stores_1, selected_date, item_selector_1, final_size_select_1, final_flav_select_1, post_concat_addition)
+        hour_cups_data_1_adv, the_query_1 = get_hour_cups_data(flavour_1_concat, selected_stores_1, selected_date, item_selector_1, final_size_select_1, final_flav_select_1, post_concat_addition)
         # get data for right side
-        hour_cups_data_2_adv = get_hour_cups_data(flavour_2_concat, selected_stores_2, selected_date, item_selector_2, final_size_select_2, final_flav_select_2, post_concat_addition)
+        hour_cups_data_2_adv, the_query_2 = get_hour_cups_data(flavour_2_concat, selected_stores_2, selected_date, item_selector_2, final_size_select_2, final_flav_select_2, post_concat_addition)
         st.write("##")
 
+        if dev_mode:
+            st.write("---")
+            st.write("##")
+            st.markdown("##### Portfolio Mode - The Resulting Dynamic Queries")
+            st.write("")
+            with st.expander(label="The Query : Item 1"):
+                stripped_query = str(the_query_1).replace("          ","").replace("        "," ")
+                st.code(stripped_query, "sql")
+            with st.expander(label="The Query : Item 2"):
+                stripped_query = str(the_query_2).replace("          ","").replace("        "," ")
+                st.code(stripped_query, "sql")
+            st.write("---")
 
         # ---- CREATE AND PRINT ALTAIR CHART OF RESULTS ----
 
@@ -1086,85 +1216,13 @@ def run():
 
         # ---- BETWEEN 2 DAYS [so far only this - active date tab = 2]----
 
-        # TODOASAP - to move this you need to chuck in things like the first_date_altair, so will do later 
-
-        def convert_raw_data_to_weeks(hour_cups_data_x_adv:list, just_cupcount_list_x_w0, just_cupcount_list_x_w1, just_cupcount_list_x_w2, just_cupcount_list_x_w3, just_cupcount_list_x_w4, just_cupcount_list_x_w5,
-                                        just_hour_list_x_w0, just_hour_list_x_w1, just_hour_list_x_w2, just_hour_list_x_w3, just_hour_list_x_w4, just_hour_list_x_w5,
-                                        just_names_list_x_w0, just_names_list_x_w1, just_names_list_x_w2, just_names_list_x_w3, just_names_list_x_w4, just_names_list_x_w5) -> tuple[list]:
-            """ write me - complex but not complicated, just multi-step af """
-
-            # vars for start and end of week as datetime.date objects
-            week_start_var, week_end_var = first_date_altair, end_of_first_week_date_altair
-
-            # create loop to run for the needed weeks (sets of 7 days), starting from the first valid date, up to max of week 6, won't run for single date as weeks_between == 0
-            for weeknum in range(1, weeks_between_dates + 1):
-
-                # dict that sorts which list each loops results will be appended to
-                weeks_dict = {1:(just_cupcount_list_x_w0, just_hour_list_x_w0, just_names_list_x_w0),
-                                2:(just_cupcount_list_x_w1, just_hour_list_x_w1, just_names_list_x_w1),
-                                3:(just_cupcount_list_x_w2, just_hour_list_x_w2, just_names_list_x_w2),
-                                4:(just_cupcount_list_x_w3, just_hour_list_x_w3, just_names_list_x_w3),
-                                5:(just_cupcount_list_x_w4, just_hour_list_x_w4, just_names_list_x_w4),
-                                6:(just_cupcount_list_x_w5, just_hour_list_x_w5, just_names_list_x_w5),
-                                }
-
-                # set vars for the list that will be appended to based on the weeknum
-                just_cupcount_list_1_week, just_hour_list_1_week, just_names_list_1_week = weeks_dict[weeknum][0], weeks_dict[weeknum][1], weeks_dict[weeknum][2]
-
-                # the missing piece of data that would be cut off during the loop and a bool flag for knowing when to add it
-                missingno_data = ()
-                gone_missin = False
-
-                # grab the cups data and add it to the relevant list
-                for cups_data in hour_cups_data_x_adv[:]:
-
-                    # boolean flag to tag on the single piece of data that would be missing in each loop due to end of loop validation
-                    if gone_missin:
-                        just_cupcount_list_1_week.append(missingno_data[0])
-                        just_hour_list_1_week.append(missingno_data[1])
-                        just_names_list_1_week.append(missingno_data[2])
-                        # reset the flag
-                        gone_missin = False
-
-                    # if statement to only grab data for the given week
-                    if cups_data[3] >= week_start_var and cups_data[3] <= week_end_var:
-                        just_cupcount_list_1_week.append(cups_data[0])
-                        just_hour_list_1_week.append(cups_data[1])
-                        just_names_list_1_week.append(cups_data[2])
-
-                    # save just the date as a temporary variable so we can pop off the now completed item from this list
-                    just_date = cups_data[3]
-
-                    # remove the already appended elements to save time for future loops
-                    hour_cups_data_x_adv.remove(cups_data)
-
-                    # if reached a date thats greater than increment week var - note that it (the current cups_data) won't have been added
-                    if just_date > week_end_var:
-                        # first save this piece of data outside the loop to slot in it during the next loop (as it is not valid for 'this' week but the next)
-                        missingno_data = (cups_data[0], cups_data[1], cups_data[2])
-                        gone_missin = True
-                        # incremenet the vars to continue looping through the next set of 7 days
-                        weeknum += 1
-                        week_start_var = week_start_var + datetime.timedelta(days=8)
-                        week_end_var = week_start_var + datetime.timedelta(days=7)
-                        # though we're calculating and using the weeks in this loop, still dont allow the final date to be greater than the users selection
-                        if week_end_var > last_date_altair:
-                            week_end_var = last_date_altair
-                        break
-            
-            # return a tuple of the results to unpack on receipt
-            return((just_cupcount_list_x_w0, just_cupcount_list_x_w1, just_cupcount_list_x_w2, just_cupcount_list_x_w3, just_cupcount_list_x_w4, just_cupcount_list_x_w5,
-                    just_hour_list_x_w0, just_hour_list_x_w1, just_hour_list_x_w2, just_hour_list_x_w3, just_hour_list_x_w4, just_hour_list_x_w5,
-                    just_names_list_x_w0, just_names_list_x_w1, just_names_list_x_w2, just_names_list_x_w3, just_names_list_x_w4, just_names_list_x_w5))
-                
-
-        # TODOASAP - smells like its time to learn multi-threading!
 
         # ---- FOR ITEM 1 / LEFT SIDE ---- 
         # run the function
         result_weeks_date_tuple = convert_raw_data_to_weeks(hour_cups_data_1_adv, just_cupcount_list_1_w0, just_cupcount_list_1_w1, just_cupcount_list_1_w2, just_cupcount_list_1_w3, just_cupcount_list_1_w4, just_cupcount_list_1_w5,
                                                             just_hour_list_1_w0, just_hour_list_1_w1, just_hour_list_1_w2, just_hour_list_1_w3, just_hour_list_1_w4, just_hour_list_1_w5,
-                                                            just_names_list_1_w0, just_names_list_1_w1, just_names_list_1_w2, just_names_list_1_w3, just_names_list_1_w4, just_names_list_1_w5)
+                                                            just_names_list_1_w0, just_names_list_1_w1, just_names_list_1_w2, just_names_list_1_w3, just_names_list_1_w4, just_names_list_1_w5,
+                                                            first_date_altair, end_of_first_week_date_altair, weeks_between_dates, last_date_altair)
 
         # unpack the results
         just_cupcount_list_1_w0, just_cupcount_list_1_w1, just_cupcount_list_1_w2, just_cupcount_list_1_w3, just_cupcount_list_1_w4, just_cupcount_list_1_w5 = result_weeks_date_tuple[0], result_weeks_date_tuple[1], result_weeks_date_tuple[2], result_weeks_date_tuple[3], result_weeks_date_tuple[4], result_weeks_date_tuple[5]
@@ -1176,7 +1234,8 @@ def run():
         # run the function
         result_weeks_date_tuple = convert_raw_data_to_weeks(hour_cups_data_2_adv, just_cupcount_list_2_w0, just_cupcount_list_2_w1, just_cupcount_list_2_w2, just_cupcount_list_2_w3, just_cupcount_list_2_w4, just_cupcount_list_2_w5,
                                                             just_hour_list_2_w0, just_hour_list_2_w1, just_hour_list_2_w2, just_hour_list_2_w3, just_hour_list_2_w4, just_hour_list_2_w5,
-                                                            just_names_list_2_w0, just_names_list_2_w1, just_names_list_2_w2, just_names_list_2_w3, just_names_list_2_w4, just_names_list_2_w5)
+                                                            just_names_list_2_w0, just_names_list_2_w1, just_names_list_2_w2, just_names_list_2_w3, just_names_list_2_w4, just_names_list_2_w5,
+                                                            first_date_altair, end_of_first_week_date_altair, weeks_between_dates, last_date_altair)
  
         # unpack the results
         just_cupcount_list_2_w0, just_cupcount_list_2_w1, just_cupcount_list_2_w2, just_cupcount_list_2_w3, just_cupcount_list_2_w4, just_cupcount_list_2_w5 = result_weeks_date_tuple[0], result_weeks_date_tuple[1], result_weeks_date_tuple[2], result_weeks_date_tuple[3], result_weeks_date_tuple[4], result_weeks_date_tuple[5]
@@ -1218,7 +1277,7 @@ def run():
         w3_list_1, w3_list_2 = [just_names_list_1_w3, just_cupcount_list_1_w3, just_hour_list_1_w3], [just_names_list_2_w3, just_cupcount_list_2_w3, just_hour_list_2_w3]    
         w4_list_1, w4_list_2 = [just_names_list_1_w4, just_cupcount_list_1_w4, just_hour_list_1_w4], [just_names_list_2_w4, just_cupcount_list_2_w4, just_hour_list_2_w4]  
         w5_list_1, w5_list_2 = [just_names_list_1_w5, just_cupcount_list_1_w5, just_hour_list_1_w5], [just_names_list_2_w5, just_cupcount_list_2_w5, just_hour_list_2_w5]   
-
+        
         # call the extend function
         final_all_list_1 = extend_list_1_with_list_2(all_list_1, all_list_2)
         final_w0_list_1 = extend_list_1_with_list_2(w0_list_1, w0_list_2)
@@ -1227,6 +1286,7 @@ def run():
         final_w3_list_1 = extend_list_1_with_list_2(w3_list_1, w3_list_2)
         final_w4_list_1 = extend_list_1_with_list_2(w4_list_1, w4_list_2)
         final_w5_list_1 = extend_list_1_with_list_2(w5_list_1, w5_list_2)
+
         # unpack the results       
         just_names_list_1_all, just_cupcount_list_1_all, just_hour_list_1_all = final_all_list_1[0], final_all_list_1[1], final_all_list_1[2]
         just_names_list_1_w0, just_cupcount_list_1_w0, just_hour_list_1_w0 = final_w0_list_1[0], final_w0_list_1[1], final_w0_list_1[2]
@@ -1455,6 +1515,9 @@ def run():
 
             # END NEW TESTING AREA STUFF FOR THIS FUNCTION
 
+            st.markdown("### Get The Insights Below")
+            st.markdown("Toggle items above with tabs above, toggle insights using tabs below")
+            st.markdown("*Note - Currently Insights are only for the full date range, not week by week*")
 
             # obviously rename these tabs, add subtitles and explanation text (be succinct tho pls)
             insightTab1, insightTab2, insightTab3 = st.tabs(["Core Insights", "Detailed Insights", "More Insights"])
@@ -1465,9 +1528,15 @@ def run():
 
             # ---- CORE INSIGHTS - CARDS ----
             with insightTab1:
+                # TODOASAP - THIS, AND 100% SHOW A INFO BOX WITH A CLOSE BUTTON TOO
+                # ACTUALLY MAYBE THIS ISN'T WORKING ANYWAY (THE EXPANDER) SO CHECK!!!
+                # use an expander to solve the jumping screen issue
+                #st.success("The Custom HTML Component has a bug which causes jump_to functionality, so it's placed in the expander below")
+                #cardblock1 = st.expander(label="See Your Insights")
+                #with cardblock1:
                 st.write("Take action without the effort with this easy to digest snapshot which showcases key insights from the data you've selected, don't forget to hit the tabs above to discover more")
                 stc.html(FOUR_CARD_INFO.format(display_sd_hours, is_or_are, f"{highest_sd_multiplier:.0f}", total_volume, total_revenue, display_op_hours, display_op_volume, is_or_are_2, average_hourcups, display_date_string), height=1000)
-            
+    
 
             # ---- INSIGHT DETAILS - TEXT ----
             with insightTab2:
@@ -1559,7 +1628,6 @@ def run():
 
         with insightItem1Tab:
             # ---- ITEMS 1 ----
-            st.markdown("*Note - Currently Insights are only for the full date range, not week by week*")
             fill_sublevel_tabs_with_insights(worst_performer_1, worst_time_1, best_performer_1, best_time_1,\
                                             average_hourcups_1, above_avg_hc_1, below_avg_hc_1, hourcups_dict_1,\
                                             overperformed_by_dict_1, hc_std_dict_1, hc_std_1, revenue_by_hour_dict_1,\
@@ -1567,7 +1635,6 @@ def run():
 
         with insightItem2Tab:
             # ---- ITEMS 2 ----
-            st.markdown("*Note - Currently Insights are only for the full date range, not week by week*")
             fill_sublevel_tabs_with_insights(worst_performer_2, worst_time_2, best_performer_2, best_time_2,\
                                             average_hourcups_2, above_avg_hc_2, below_avg_hc_2, hourcups_dict_2,\
                                             overperformed_by_dict_2, hc_std_dict_2, hc_std_2, revenue_by_hour_dict_2,\
@@ -1576,7 +1643,6 @@ def run():
         # for each tab, run function which creates nested tabs and dynamically fills them with the relevant data (item 1, item 2, both items)
         with insightBothItemsTab:
             # ---- BOTH ITEMS ----
-            st.markdown("*Note - Currently Insights are only for the full date range, not week by week*")
             # this is 1 minus 2 so is really unique and not valid for 1 or 2 hence why it is here (legit placed here so i dont forget it too)
             revenue_diff_by_hour_dict = create_hc_1_vs_2_difference_in_revenue_by_hour_dict(revenue_by_hour_dict_1,revenue_by_hour_dict_2)
             print("\nrevenue_diff_by_hour_dict", revenue_diff_by_hour_dict)

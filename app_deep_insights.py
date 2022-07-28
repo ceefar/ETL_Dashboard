@@ -18,5 +18,7 @@
 
 
 
-
-# really wanna do api sumnt new ngl
+# do portfolio mode really just start it tbf you can come back to it...
+# also maybe try multi-threading for like a short time...
+# i think this yanno, some tutorials for the day multithreading, multiprocessing, apis, flutter?!, should really do some cpp too 
+# then either above or do api/sumnt new (see todo notes) - seriously think do dateors task yanno
