@@ -9,6 +9,8 @@ from streamlit.errors import StreamlitAPIException, DuplicateWidgetID
 import datetime
 # for db integration
 import db_integration as db
+# for dynamic image creation
+import artist as arty
 # for images and img manipulation
 import PIL
 # for data manipulation
@@ -732,10 +734,10 @@ def run():
             # for single week first grab just the date from the string
             to_make_date = selected_date_3[10:]
             # then make a query to get the date in the future (yes ik, i actually have a function for this now but just leaving this as is for now)
-            end_of_week = get_from_db(f"SELECT DATE_ADD('{to_make_date}', INTERVAL 6 DAY);")
+            end_of_week = str(make_dt_next_week_basic(to_make_date, 6))
             # convert these strings to have times so that strptime actually works on them
             to_make_date = to_make_date + " 00:00:00.000000"
-            end_of_week = end_of_week[0][0] + " 00:00:00.000000"
+            end_of_week = end_of_week + " 00:00:00.000000"
             # convert the string dates to datetime objects, and then to date objects 
             date_1 = datetime.datetime.strptime(to_make_date, '%Y-%m-%d %H:%M:%S.%f').date()
             date_2 = datetime.datetime.strptime(end_of_week, '%Y-%m-%d %H:%M:%S.%f').date()
@@ -760,6 +762,9 @@ def run():
 
         # ---- STORE SELECT ----
         selected_stores_1 = st.multiselect("Choose The Store/s", options=base_stores_list, default=["Chesterfield"])
+
+    userSelectCol2, _, calendarCol = st.columns([5,1,5]) 
+    with userSelectCol2:
         
         # ---- DATE SELECT ----
         #dateTab2, dateTab1, dateTab3, dateTab4, dateTab5, dateTabs6 = st.tabs(["Between 2 Dates", "Single Day", "Single Week", "Mulitple Weeks", "Full Month", "All Time"]) 
@@ -775,14 +780,14 @@ def run():
         with dateTab1:
             selected_date_1 = st.date_input("What Date Would You Like Info On?", datetime.date(2022, 7, 5), max_value=last_valid_date, min_value=first_valid_date, on_change=last_active_tab, args=[1], key="TODO")  
             st.write("##")
-            st.button("Get Insights", help="To Get New Insights : change the date, press this button, use physic powers", key="run_1", on_click=force_date_run_btn, args=["run_1"])
+            st.button("Get Insights For This Date", help="To Get New Insights : change the date, press this button, use physic powers", key="run_1", on_click=force_date_run_btn, args=["run_1"])
 
         # ---- BETWEEN 2 DAYS ----
         with dateTab2:
             selected_date_2_start = st.date_input("What Start Date?", datetime.date(2022, 7, 1), max_value=last_valid_date, min_value=first_valid_date, on_change=last_active_tab, args=[2], key="TODO2")  
             selected_date_2_end = st.date_input("What End Date?", datetime.date(2022, 7, 8), max_value=last_valid_date, min_value=first_valid_date, on_change=last_active_tab, args=[2], key="TODO3")
             st.write("##")
-            st.button("Get Insights", help="To Get New Insights : change the date, press this button, use physic powers", key="run_2", on_click=force_date_run_btn, args=["run_2"])
+            st.button("Get Insights For These Dates", help="To Get New Insights : change the date, press this button, use physic powers", key="run_2", on_click=force_date_run_btn, args=["run_2"])
             # TODO - print days between dates here 
 
         # ---- SINGLE WEEK ----
@@ -805,7 +810,7 @@ def run():
             # TODO - add the actual first date instead of just an int and get the img ting sorted too
             selected_date_3 = st.selectbox("Which Week?", options=stores_available_weeks_formatted, key="TODO4", help="Date shown is week commencing. Weeks start on Monday", on_change=last_active_tab, args=[3])
             st.write("##")
-            st.button("Get Insights", help="To Get New Insights : change the date, press this button, use physic powers", key="run_3", on_click=force_date_run_btn, args=["run_3"])        
+            st.button("Get Insights For This Week", help="To Get New Insights : change the date, press this button, use physic powers", key="run_3", on_click=force_date_run_btn, args=["run_3"])        
         
         # ---- MULTIPLE WEEKS [NOT IMPLEMENTED YET] ----
         with dateTab4:
@@ -819,7 +824,7 @@ def run():
             st.info("Functionality Coming Soon")
             #st.write(f"Total Days = {len(selected_date_4) * 7}")
             st.write("##")
-            st.button("Get Insights", help="To Get New Insights : change the date, press this button, use physic powers", key="run_4", on_click=force_date_run_btn, args=["run_4"])        
+            st.button("Get Insights For These Weeks", help="To Get New Insights : change the date, press this button, use physic powers", key="run_4", on_click=force_date_run_btn, args=["run_4"], disabled=True)        
 
     # var that holds the key/on_change args from each date select plus the variables that store the result, used for getting the last active tab
     use_vs_selected_date_dict = {1:selected_date_1, 2:(selected_date_2_start, selected_date_2_end), 3:selected_date_3, 4:selected_date_4}
@@ -858,7 +863,7 @@ def run():
 
     # print function for images
     def print_on_off_stores(selected_stores_list:list, img_dict:dict):
-        """ prints out the 5 store images as either on or off (saturated) based on whether they were selected, see comment for refactor"""
+        """ prints out the 5 store images as either on or off (saturated) based on whether they were selected, see comment for refactor """
         # if you actually pass in the dict (and they always have cols + imgs, and same key names) then this could be reformatted to be multipurpose
         for store_name in base_stores_list:
                 if store_name in selected_stores_list:
@@ -874,14 +879,20 @@ def run():
         pass
 
 
-    # TODO 
-    # ---- VISUAL CLARITY CALENDAR PRINT (TO-DO) ----
+    # ---- VISUAL CLARITY CALENDAR PRINT ----
 
-    # should cache artist prints btw as will be atleast somewhat computationally expensive
-    # june_start_weeknumb = 22
-    # highlight_week = weeknumberselect - june_start_weeknumb
-    # calendar_highlight = arty.highlight_calendar(highlight_week, weeknumberselect, week_array)
-    # weekBreakdownCol2.image(calendar_highlight)         
+    # TODOASAP - do properly, do as function, do error handling, cache it(properly), dynamic functionality for tab 1 and 2!
+    # 100% as a function and cached otherwise is creating a dynamic image everytime when it reeeally isn't needed
+    # but save the functionality (dont convert to just X_select = print X_image) as can do dynamically for between 2 dates and single day too
+    if st.session_state["last_active_date_tab"] == 3:
+        june_start_weeknumb = 22
+        weeknumberselect = int(selected_date_3[5:8])
+        highlight_week = weeknumberselect - june_start_weeknumb
+        # calendar_highlight = arty.highlight_calendar(highlight_week, weeknumberselect, week_array)
+        calendar_highlight = arty.highlight_calendar(highlight_week, weeknumberselect)
+        calendarCol.image(calendar_highlight) 
+        
+   
 
 
     # ---- DIVIDER ----

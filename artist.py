@@ -7,7 +7,8 @@ from PIL import Image, ImageDraw, ImageFont, ImageFilter
 
 # ---- DRAW CALENDAR ----
 
-def highlight_calendar(weeknumb:int, actualweeknumb:int, weekarray:list) -> str:
+# def highlight_calendar(weeknumb:int, actualweeknumb:int, weekarray:list) -> str:
+def highlight_calendar(weeknumb:int, actualweeknumb:int) -> str:
     """ write me pls ceef """
 
     # set base image to be june or july based on the week number
@@ -15,12 +16,12 @@ def highlight_calendar(weeknumb:int, actualweeknumb:int, weekarray:list) -> str:
         # open june img as img object
         img = Image.open('imgs/Calendar-2022-June.png')
         # path for the final image
-        imgpath = f'imgs/test_june_{weeknumb}.png'
+        imgpath = f'imgs/arty/arty_june_{weeknumb}.png'
     else:
         # open july img as img object
         img = Image.open('imgs/Calendar-2022-July.png')   
         # path for the final image
-        imgpath = f'imgs/test_july_{weeknumb}.png' 
+        imgpath = f'imgs/arty/arty_july_{weeknumb}.png' 
         # change weeknumb for july, will start with weeknumb being 5 so -4 as need it to be +1 for offset the highlight for july 
         # as first week is actually the last from june (1st - 3rd)
         weeknumb -= 4
@@ -89,13 +90,14 @@ def highlight_calendar(weeknumb:int, actualweeknumb:int, weekarray:list) -> str:
     # paste the image in place (image, (x, y), color/mask)
     # week (y) modifier
     i = weeknumb
+
     # day (x modifier)
-    for j, day in enumerate(weekarray):
-        if day:
-            # if day == true paste tick, else print cross
-            img.paste(tickimg, ((xbase + (xincrement*j)), ybase + (yincrement*i)), tickimg)
-        else:
-            img.paste(crossimg, ((xbase + (xincrement*j)), ybase + (yincrement*i)), crossimg)
+    #for j, day in enumerate(weekarray):
+    #    if day:
+    #        # if day == true paste tick, else print cross
+    #        img.paste(tickimg, ((xbase + (xincrement*j)), ybase + (yincrement*i)), tickimg)
+    #    else:
+    #        img.paste(crossimg, ((xbase + (xincrement*j)), ybase + (yincrement*i)), crossimg)
 
     # crop the bottom off the final img - left pos of crop, top pos of crop, width of final img, height of final img
     img = img.crop((0, 0, 960, 600))
