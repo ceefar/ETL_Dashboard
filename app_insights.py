@@ -816,6 +816,12 @@ def run():
         st.write("##")
         st.markdown("*Note - Dashboard is designed for desktop*")
     
+        st.write("##")
+        WIDE_MODE_INFO = """
+        Designed For Wide Mode\n
+        If this page isn't full width hit the App Insights text above in the sidebar or use the hamburger menu in the top right (Settings -> Wide Mode) 
+        """
+        st.success("Tap App Insights Above or")    
 
     # ---- HEADER ----
 
@@ -1520,7 +1526,7 @@ def run():
             st.markdown("*Note - Currently Insights are only for the full date range, not week by week*")
 
             # obviously rename these tabs, add subtitles and explanation text (be succinct tho pls)
-            insightTab1, insightTab2, insightTab3 = st.tabs(["Detailed Insights", "Core Insights", "More Insights"])
+            insightTab1, insightTab2, insightTab3 = st.tabs(["Core Insights", "Detailed Insights", "More Insights"])
             
             # some lambdas for extracting vars that didn't require functions
             hours_above_avg_sales = ', '.join(list(map(lambda x : f'{x}pm' if x > 11 else f'{x}am' , list(above_avg_hc.keys()))))
