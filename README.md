@@ -13,5 +13,6 @@ Final dataset was over 1,000,000 (1m) datapoints (approx 5 stores of data, per d
   
 #### More Info Coming Soon    
 Yes I will write this readme - with all the relevant info shortly, i swear   
-
-[![Ceefar's GitHub stats](https://github-readme-stats.vercel.app/api?username=ceefar)](https://github.com/anuraghazra/github-readme-stats)
+  
+  
+![Ceefar's GitHub stats](https://github-readme-stats.vercel.app/api?username=ceefar&show_icons=true&theme=gruvbox)
