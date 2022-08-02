@@ -1,7 +1,6 @@
 # ---- IMPORTS ----
 
 # for web app 
-from pkg_resources import cleanup_resources
 import streamlit as st
 import streamlit.components.v1 as stc
 from streamlit.errors import StreamlitAPIException, DuplicateWidgetID
@@ -20,7 +19,7 @@ import numpy as np
 import altair as alt
 # for logging
 import logging
-# for error handling
+# for db access
 import mysql.connector
 # for html componenets 
 from code_components import THREE_CARD_INFO, FOUR_CARD_INFO
@@ -821,7 +820,7 @@ def run():
         Designed For Wide Mode\n
         If this page isn't full width hit the App Insights text above in the sidebar or use the hamburger menu in the top right (Settings -> Wide Mode) 
         """
-        st.success("Tap App Insights Above or")    
+        st.success(WIDE_MODE_INFO)    
 
     # ---- HEADER ----
 
