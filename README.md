@@ -1,6 +1,6 @@
 ## ETL_Dashboard  
   
-**Check out the pre-MVP webapp over on Streamlit Cloud [ETL Web App](https://ceefar-etl-dashboard-app-insights-7xqywv.streamlitapp.com/)  **
+**Check out the pre-MVP web app over on Streamlit Cloud here -> [ETL Web App](https://ceefar-etl-dashboard-app-insights-7xqywv.streamlitapp.com/)**  
    
 ##### Landing Preview   
 <img src="https://thehardgainerbible.com/wp-content/uploads/2022/08/insights_dash_1.png" width="800">  
