@@ -1,7 +1,19 @@
 ## ETL_Dashboard  
   
-This is still massively in development, but you (should) be able to check it out over on Streamlit Cloud [ETL Web App](https://ceefar-etl-dashboard-app-insights-7xqywv.streamlitapp.com/)  
-*(again please note this is in development right now, and so it's current state my be unstable - a solid state version can be provided on request)*  
+**Check out the pre-MVP webapp over on Streamlit Cloud [ETL Web App](https://ceefar-etl-dashboard-app-insights-7xqywv.streamlitapp.com/)  **
+   
+##### Landing Preview   
+<img src="https://thehardgainerbible.com/wp-content/uploads/2022/08/insights_dash_1.png" width="800">  
+   
+##### Dynamic User Selection & HTML Card Components  
+<img src="https://thehardgainerbible.com/wp-content/uploads/2022/08/insights_dash_2.png" width="400"><img src="https://thehardgainerbible.com/wp-content/uploads/2022/08/insights_dash_3.png" width="400">  
+  
+##### NEW - Portfolio Mode   
+Take a peek at the backend and watch live code update the sql queries as you change inputs  
+<img src="https://thehardgainerbible.com/wp-content/uploads/2022/08/insights_dash_6.png" width="400"><img src="https://thehardgainerbible.com/wp-content/uploads/2022/08/insights_dash_8.png" width="400">  
+   
+
+*(again please note this is in development right now, and so it's current state my be somewhat unstable)*  
   
 #### What is this?  
 Personal Project [In Progress] - Insights focused web app (using streamlit) for the data from my group project, developing further as many things I didn't get to do (over the 6 weeks of the group project).   
