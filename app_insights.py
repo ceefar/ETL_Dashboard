@@ -50,14 +50,16 @@ logger = logging.getLogger()
 def on_load():
     """ sets the layout default to wide, set page config needs to be the first streamlit action that is run for it to work """
     # potential bug that it sometimes doesn't do this first time round but does when you click a page again (consider re-run to force?)
-    st.set_page_config(layout="wide")
+    try: 
+        st.set_page_config(layout="wide")
+    except StreamlitAPIException:
+        pass
 
 
 # catch error in case that file is reloaded locally meaning app thinks config hasn't run first when it has (may have been snowflake specific so test it)
-try: 
-    on_load()
-except StreamlitAPIException:
-    pass
+
+on_load()
+
 
 
 # testing having the connection in main module to see if improves connection bug, tho am not hopeful
